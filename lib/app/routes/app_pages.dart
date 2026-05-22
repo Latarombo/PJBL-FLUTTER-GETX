@@ -27,6 +27,7 @@ import '../modules/settings/views/settings_view.dart';
 import '../app_shell.dart';
 import '../app_shell_binding.dart';
 
+
 part 'app_routes.dart';
 
 class AppPages {
