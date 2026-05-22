@@ -6,6 +6,7 @@ import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/get_navigation/src/snackbar/snackbar.dart';
 import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
+import 'package:santarana/app/routes/app_pages.dart';
 import 'package:santarana/shared/data/quiz_data.dart';
 import 'package:santarana/shared/data/quiz_model.dart';
 
@@ -177,8 +178,7 @@ class QuizController extends GetxController {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        Get.back(); // tutup dialog
-                        Get.back(); // kembali ke home
+                        Get.offNamedUntil(Routes.APP, (route) => false);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1A2332),
