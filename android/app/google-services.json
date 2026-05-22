@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "336785513468",
+    "project_id": "santarana-quiz",
+    "storage_bucket": "santarana-quiz.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:336785513468:android:032c169a52304a9770b079",
+        "android_client_info": {
+          "package_name": "com.example.santarana"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBP4ksXYPnWL7mmIN4_Y-_9-5eQd1JrOTg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
