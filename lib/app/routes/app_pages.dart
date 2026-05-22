@@ -1,6 +1,8 @@
 // lib/app/routes/app_pages.dart
 
 import 'package:get/get.dart';
+import 'package:santarana/app/modules/quiz/bindings/quiz_binding.dart';
+import 'package:santarana/app/modules/quiz/views/quiz_view.dart';
 
 import '../modules/splash/bindings/splash_binding.dart';
 import '../modules/splash/views/splash_view.dart';
@@ -14,19 +16,9 @@ import '../modules/email_verification/bindings/email_verification_binding.dart';
 import '../modules/email_verification/views/email_verification_view.dart';
 import '../modules/password_recovery_success/bindings/password_recovery_success_binding.dart';
 import '../modules/password_recovery_success/views/password_recovery_success_view.dart';
-import '../modules/home/bindings/home_binding.dart';
-import '../modules/home/views/home_view.dart';
-import '../modules/quiz/bindings/quiz_binding.dart';
-import '../modules/quiz/views/quiz_view.dart';
-import '../modules/leaderboard/bindings/leaderboard_binding.dart';
-import '../modules/leaderboard/views/leaderboard_view.dart';
-import '../modules/profile/bindings/profile_binding.dart';
-import '../modules/profile/views/profile_view.dart';
-import '../modules/settings/bindings/settings_binding.dart';
-import '../modules/settings/views/settings_view.dart';
+
 import '../app_shell.dart';
 import '../app_shell_binding.dart';
-
 
 part 'app_routes.dart';
 
@@ -71,6 +63,11 @@ class AppPages {
       name: _Paths.APP,
       page: () => const AppShell(),
       binding: AppShellBinding(),
+    ),
+    GetPage(
+      name: _Paths.QUIZ,
+      page: () => const QuizView(),
+      binding: QuizBinding(),
     ),
   ];
 }
