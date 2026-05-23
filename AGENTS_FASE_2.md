@@ -588,16 +588,16 @@ default                  → 'Terjadi kesalahan, coba lagi'
 ✅ Buat lib/shared/models/user_model.dart
 ✅ Buat lib/shared/services/auth_service.dart
 ✅ Buat lib/shared/controllers/auth_controller.dart
-⬜ Daftarkan AuthController di main.dart (Get.putAsync)
-⬜ Update splash_controller.dart (cek auth state)
-⬜ Update sign_in_controller.dart (Firebase Auth + isLoading)
-⬜ Update register_controller.dart (register + simpan Firestore)
-⬜ Update forgot_password_controller.dart (sendPasswordReset)
-⬜ Update profile_controller.dart (logout nyata)
-⬜ Test: register user baru → cek di Firebase Console > Firestore > users
-⬜ Test: login dengan akun yang baru dibuat → masuk ke APP
-⬜ Test: restart app → splash langsung ke APP (sudah login)
-⬜ Test: logout → kembali ke sign_in
-⬜ Test: login email salah → snackbar error muncul
-⬜ Test: forgot password → email masuk di inbox
+✅ Daftarkan AuthController di main.dart (Get.putAsync)
+✅ Update splash_controller.dart (cek auth state)
+✅ Update sign_in_controller.dart (Firebase Auth + isLoading)
+✅ Update register_controller.dart (register + simpan Firestore)
+✅ Update forgot_password_controller.dart (sendPasswordReset)
+✅ Update profile_controller.dart (logout nyata)
+✅ Test: register user baru → cek di Firebase Console > Firestore > users
+✅ Test: login dengan akun yang baru dibuat → masuk ke APP
+✅ Test: restart app → splash langsung ke APP (sudah login)
+✅ Test: logout → kembali ke sign_in
+✅ Test: login email salah → snackbar error muncul
+✅ Test: forgot password → email masuk di inbox
 ```

@@ -9,8 +9,7 @@ import 'package:santarana/app/routes/app_pages.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
 import 'package:santarana/shared/services/auth_service.dart';
 
-class SplashController extends GetxController
-    with GetTickerProviderStateMixin {
+class SplashController extends GetxController with GetTickerProviderStateMixin {
   late AnimationController fadeController;
   late AnimationController slideController;
 
@@ -58,7 +57,11 @@ class SplashController extends GetxController
     await slideController.forward();
     await Future.delayed(const Duration(milliseconds: 2800));
 
-    final firebaseUser = FirebaseAuth.instance.currentUser;
+    // menggunakan authStateChanges().first
+    // ini MENUNGGU Firebase selesai restore session
+    // tidak langsung ambil currentUser yang bisa null
+    final firebaseUser = await FirebaseAuth.instance.authStateChanges().first;
+
     if (firebaseUser != null) {
       final authController = Get.find<AuthController>();
       final userData = await AuthService().getUserData(firebaseUser.uid);
