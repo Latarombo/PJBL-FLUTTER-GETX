@@ -100,9 +100,11 @@ class SignInView extends GetView<SignInController> {
                             ),
                             const SizedBox(height: 32),
 
+                            // ✅ Diganti: usernameController → emailController, hint 'Email'
                             InputField(
-                              controller: controller.usernameController,
-                              hint: 'Username',
+                              controller: controller.emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              hint: 'Email',
                             ),
                             const SizedBox(height: 16),
 
@@ -132,9 +134,16 @@ class SignInView extends GetView<SignInController> {
                             ),
                             const SizedBox(height: 24),
 
-                            PrimaryButton(
-                              text: 'Masuk',
-                              onPressed: controller.handleSignIn,
+                            // ✅ Wrap Obx untuk reaktif isLoading
+                            Obx(
+                              () => PrimaryButton(
+                                text: controller.isLoading.value
+                                    ? 'Memproses...'
+                                    : 'Masuk',
+                                onPressed: controller.isLoading.value
+                                    ? () {}
+                                    : controller.handleSignIn,
+                              ),
                             ),
                             const SizedBox(height: 24),
 
