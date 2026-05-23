@@ -1,9 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_ticket_provider_mixin.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:santarana/app/routes/app_pages.dart';
+import 'package:santarana/shared/controllers/auth_controller.dart';
+import 'package:santarana/shared/services/auth_service.dart';
 
 class SplashController extends GetxController
     with GetTickerProviderStateMixin {
@@ -54,8 +58,17 @@ class SplashController extends GetxController
     await slideController.forward();
     await Future.delayed(const Duration(milliseconds: 2800));
 
-    // GetX navigation - tidak butuh context!
-    Get.offAllNamed(Routes.SIGN_IN);
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser != null) {
+      final authController = Get.find<AuthController>();
+      final userData = await AuthService().getUserData(firebaseUser.uid);
+      if (userData != null) {
+        authController.setUser(userData);
+      }
+      Get.offAllNamed(Routes.APP);
+    } else {
+      Get.offAllNamed(Routes.SIGN_IN);
+    }
   }
 
   @override

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:santarana/firebase_options.dart';
+import 'package:santarana/shared/controllers/auth_controller.dart';
 
 import 'app/routes/app_pages.dart';
 import 'shared/theme/app_theme.dart';
@@ -13,6 +14,8 @@ Future<void> main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Hapus setelah berhasil test
   print('Firebase connected: ${Firebase.app().name}');
+
+  await Get.putAsync(() async => AuthController());
 
   await SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
