@@ -435,14 +435,14 @@ user_progress/{uid}/categories/{categoryId}
 ## ✅ CHECKLIST FASE 4
 
 ```
-⬜ Buat lib/shared/models/quiz_session_model.dart
-⬜ Buat lib/shared/models/progress_model.dart
-⬜ Buat lib/shared/services/quiz_result_service.dart
-⬜ Buat lib/shared/services/progress_service.dart
-⬜ Update quiz_controller.dart (simpan hasil setelah quiz selesai)
-⬜ Update home_controller.dart (load progress user)
-⬜ Update home_view.dart (reminder card & aktivitas terakhir dinamis)
-⬜ Update home_view.dart (total poin dari AuthController)
+✅ Buat lib/shared/models/quiz_session_model.dart
+✅ Buat lib/shared/models/progress_model.dart
+✅ Buat lib/shared/services/quiz_result_service.dart
+✅ Buat lib/shared/services/progress_service.dart
+✅ Update quiz_controller.dart (simpan hasil setelah quiz selesai)
+✅ Update home_controller.dart (load progress user)
+✅ Update home_view.dart (reminder card & aktivitas terakhir dinamis)
+✅ Update home_view.dart (total poin dari AuthController)
 ⬜ Test: selesaikan quiz → cek quiz_sessions di Firestore Console
 ⬜ Test: poin user bertambah di Firestore users/{uid}
 ⬜ Test: progress muncul di HomeView reminder cards

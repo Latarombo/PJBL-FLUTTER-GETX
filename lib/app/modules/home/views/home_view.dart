@@ -6,13 +6,13 @@ import 'package:get/get_state_manager/src/simple/get_view.dart';
 import 'package:santarana/app/modules/home/controllers/home_controller.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
 import 'package:santarana/shared/models/category_model.dart';
+import 'package:santarana/shared/models/progress_model.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // AuthController sudah di-inject di main.dart sebagai GetxService
     final authController = Get.find<AuthController>();
 
     return Scaffold(
@@ -25,7 +25,7 @@ class HomeView extends GetView<HomeController> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Header dengan username dinamis ──────────────────────
+                  // ── Header dengan username & totalPoints dinamis ────────
                   _buildHeader(authController),
                   const SizedBox(height: 80),
 
@@ -60,10 +60,6 @@ class HomeView extends GetView<HomeController> {
 
                   // ── Kategori DINAMIS dari Firestore ─────────────────────
                   _buildGameCategories(),
-                  const SizedBox(height: 24),
-
-                  // ── Pengingat: DISEMBUNYIKAN di Fase 3 ─────────────────
-                  // Akan diaktifkan kembali di Fase 4 (user_progress)
                   const SizedBox(height: 100),
                 ],
               ),
@@ -84,7 +80,7 @@ class HomeView extends GetView<HomeController> {
                 ),
               ),
 
-              // ── Aktivitas Terakhir Card ────────────────────────────────
+              // ── Aktivitas Terakhir Card — DINAMIS dari Firestore ───────
               Positioned(
                 top: 220,
                 left: 0,
@@ -98,7 +94,7 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  // ── HEADER dengan username dari AuthController ────────────────────────────
+  // ── HEADER ────────────────────────────────────────────────────────────────
   Widget _buildHeader(AuthController authController) {
     return Container(
       height: 280,
@@ -137,7 +133,6 @@ class HomeView extends GetView<HomeController> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // "Halo,"
                     Stack(
                       children: [
                         Text(
@@ -161,7 +156,6 @@ class HomeView extends GetView<HomeController> {
                         ),
                       ],
                     ),
-
                     // Username DINAMIS dari AuthController
                     Obx(() {
                       final name = authController.username;
@@ -191,7 +185,6 @@ class HomeView extends GetView<HomeController> {
                     }),
                   ],
                 ),
-
                 // Notifikasi + Avatar
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -239,7 +232,7 @@ class HomeView extends GetView<HomeController> {
             ),
             const SizedBox(height: 21),
 
-            // Total Poin DINAMIS dari AuthController
+            // Total Poin DINAMIS — update langsung setelah quiz selesai
             Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -299,105 +292,122 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  // ── AKTIVITAS TERAKHIR (masih placeholder, akan dinamis di Fase 4) ────────
+  // ── AKTIVITAS TERAKHIR — DINAMIS dari user_progress ──────────────────────
   Widget _buildAktivitasTerakhirCard() {
-    return GestureDetector(
-      onTap: () => controller.goToQuiz('Tarian Tradisional'),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.08),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  image: const DecorationImage(
-                    image: AssetImage('assets/images/pakaian_adat1.png'),
-                    fit: BoxFit.cover,
+    return Obx(() {
+      final last = controller.lastActivity.value;
+
+      // Belum pernah main → sembunyikan card
+      if (last == null) return const SizedBox.shrink();
+
+      return GestureDetector(
+        onTap: () => controller.goToQuiz(last.categoryName),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(15),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // Gambar kategori
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: const Color(0xFF5A8B7E), // fallback
+                    image: last.imagePath.isNotEmpty
+                        ? DecorationImage(
+                            image: AssetImage(last.imagePath),
+                            fit: BoxFit.cover,
+                            onError: (_, __) {},
+                          )
+                        : null,
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Aktivitas Terakhir',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        Icon(
-                          Icons.arrow_forward_ios,
-                          size: 16,
-                          color: Colors.grey[600],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Kuis 3',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                    Text(
-                      '15 pertanyaan',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(10),
-                            child: LinearProgressIndicator(
-                              value: 9 / 15,
-                              backgroundColor: Colors.grey[300],
-                              valueColor: const AlwaysStoppedAnimation<Color>(
-                                Color(0xFFFFB347),
-                              ),
-                              minHeight: 8,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Aktivitas Terakhir',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          '9/15',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                            color: Colors.grey[600],
                           ),
-                        ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      // Nama kategori
+                      Text(
+                        last.categoryName,
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      // Skor terakhir
+                      Text(
+                        'Skor terakhir: ${last.lastScore}%  •  ${last.attempts}x main',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 6),
+                      // Progress bar
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: LinearProgressIndicator(
+                                value: last.lastScore / 100,
+                                backgroundColor: Colors.grey[300],
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Color(0xFFFFB347),
+                                ),
+                                minHeight: 8,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${last.lastScore}%',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   // ── FEATURED GAME CARD ────────────────────────────────────────────────────
@@ -524,14 +534,11 @@ class HomeView extends GetView<HomeController> {
     return SizedBox(
       height: 100,
       child: Obx(() {
-        // Loading state
         if (controller.isLoadingCategories.value) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFFFFB347)),
           );
         }
-
-        // Empty state
         if (controller.categories.isEmpty) {
           return const Center(
             child: Text(
@@ -540,8 +547,6 @@ class HomeView extends GetView<HomeController> {
             ),
           );
         }
-
-        // Data dari Firestore
         return ListView.separated(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           scrollDirection: Axis.horizontal,
@@ -556,7 +561,7 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  // ── CATEGORY CARD — pakai CategoryModel ───────────────────────────────────
+  // ── CATEGORY CARD ─────────────────────────────────────────────────────────
   Widget _buildCategoryCard(CategoryModel category) {
     return GestureDetector(
       onTap: () => controller.goToQuiz(category.name),
@@ -569,7 +574,7 @@ class HomeView extends GetView<HomeController> {
             fit: BoxFit.cover,
             onError: (_, __) {},
           ),
-          color: const Color(0xFF5A8B7E), // fallback jika gambar error
+          color: const Color(0xFF5A8B7E),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),

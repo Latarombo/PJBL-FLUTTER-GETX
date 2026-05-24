@@ -2,21 +2,34 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_navigation/src/extension_navigation.dart';
 import 'package:get/get_navigation/src/snackbar/snackbar.dart';
 import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:santarana/app/routes/app_pages.dart';
+import 'package:santarana/shared/controllers/auth_controller.dart';
+import 'package:santarana/shared/models/category_model.dart';
+import 'package:santarana/shared/models/progress_model.dart';
 import 'package:santarana/shared/models/question_model.dart';
+import 'package:santarana/shared/models/quiz_session_model.dart';
+import 'package:santarana/shared/services/progress_service.dart';
+import 'package:santarana/shared/services/quiz_result_service.dart';
 import 'package:santarana/shared/services/quiz_service.dart';
 
 class QuizController extends GetxController {
   final QuizService _quizService = QuizService();
+  final QuizResultService _resultService = QuizResultService();
+  final ProgressService _progressService = ProgressService();
+
+  // AuthController diakses via Get.find — sudah di-inject di main.dart
+  AuthController get _authController => Get.find<AuthController>();
 
   // ─── STATE ─────────────────────────────────────────────────────────────────
   final isLoading = false.obs;
+  final isSaving = false.obs; // loading saat simpan hasil ke Firestore
   final questions = <QuestionModel>[].obs;
-  final categoryName = ''.obs;        // nama kategori yang sedang dimainkan
+  final categoryName = ''.obs;
 
   final currentQuestionIndex = 0.obs;
   final selectedAnswerIndex = RxnInt();
@@ -25,15 +38,19 @@ class QuizController extends GetxController {
   final totalPoints = 0.obs;
   final streak = 0.obs;
 
+  // Simpan referensi CategoryModel untuk dipakai saat _saveResults
+  CategoryModel? _currentCategory;
+
+  // Catat waktu mulai sesi
+  DateTime _startedAt = DateTime.now();
+
   Timer? _autoAdvanceTimer;
 
   // ─── GETTERS ───────────────────────────────────────────────────────────────
 
-  /// Soal yang sedang ditampilkan
   QuestionModel? get currentQuestion =>
       questions.isNotEmpty ? questions[currentQuestionIndex.value] : null;
 
-  /// Total soal dalam sesi ini
   int get totalQuestions => questions.length;
 
   // ─── LIFECYCLE ─────────────────────────────────────────────────────────────
@@ -48,13 +65,10 @@ class QuizController extends GetxController {
 
   // ─── FETCH ─────────────────────────────────────────────────────────────────
 
-  /// Fetch soal dari Firestore berdasarkan nama kategori
-  /// Flow: nama kategori → cari categoryId → fetch questions by categoryId
   Future<void> fetchQuestions(String name) async {
     try {
       isLoading.value = true;
 
-      // Step 1: Cari kategori berdasarkan nama untuk dapat categoryId
       final category = await _quizService.getCategoryByName(name);
       if (category == null) {
         Get.snackbar(
@@ -67,7 +81,9 @@ class QuizController extends GetxController {
         return;
       }
 
-      // Step 2: Fetch soal menggunakan categoryId (document ID)
+      // Simpan referensi kategori untuk dipakai di _saveResults
+      _currentCategory = category;
+
       final result = await _quizService.getQuestionsByCategoryId(category.id);
       if (result.isEmpty) {
         Get.snackbar(
@@ -82,6 +98,9 @@ class QuizController extends GetxController {
 
       questions.value = result;
       _resetState();
+
+      // Catat waktu mulai setelah soal berhasil dimuat
+      _startedAt = DateTime.now();
     } catch (e) {
       Get.snackbar(
         'Error',
@@ -137,29 +156,116 @@ class QuizController extends GetxController {
       selectedAnswerIndex.value = null;
       isAnswered.value = false;
     } else {
-      _showResultDialog();
+      // Quiz selesai → simpan hasil dulu, baru tampilkan dialog
+      _saveResultsAndShowDialog();
     }
   }
 
-  void _showResultDialog() {
+  // ─── SIMPAN HASIL ──────────────────────────────────────────────────────────
+
+  /// Simpan hasil ke Firestore, lalu tampilkan dialog hasil
+  Future<void> _saveResultsAndShowDialog() async {
+    final uid = _authController.uid;
+    final category = _currentCategory;
+
+    // Hitung nilai akhir
     final correct = correctAnswers.value;
     final total = totalQuestions;
     final points = totalPoints.value;
     final percentage = total > 0 ? (correct / total) * 100 : 0.0;
+    final grade = QuizSessionModel.calculateGrade(percentage);
 
-    String grade;
-    if (percentage >= 90) {
-      grade = 'Sempurna!';
-    } else if (percentage >= 80) {
-      grade = 'Sangat Baik!';
-    } else if (percentage >= 70) {
-      grade = 'Baik';
-    } else if (percentage >= 60) {
-      grade = 'Cukup';
-    } else {
-      grade = 'Perlu Belajar Lagi';
+    // Tampilkan dialog dulu — simpan di background
+    _showResultDialog(
+      correct: correct,
+      total: total,
+      points: points,
+      percentage: percentage,
+      grade: grade,
+    );
+
+    // Simpan ke Firestore di background (tidak perlu await di sini)
+    if (uid != null && category != null) {
+      _saveResults(
+        uid: uid,
+        category: category,
+        correct: correct,
+        total: total,
+        percentage: percentage,
+        points: points,
+        grade: grade,
+      );
     }
+  }
 
+  Future<void> _saveResults({
+    required String uid,
+    required CategoryModel category,
+    required int correct,
+    required int total,
+    required double percentage,
+    required int points,
+    required String grade,
+  }) async {
+    try {
+      isSaving.value = true;
+
+      final session = QuizSessionModel(
+        userId: uid,
+        categoryId: category.id,
+        categoryName: category.name,
+        totalQuestions: total,
+        correctAnswers: correct,
+        wrongAnswers: total - correct,
+        pointsEarned: points,
+        percentage: percentage,
+        grade: grade,
+        streak: streak.value,
+        isCompleted: true,
+        startedAt: _startedAt,
+        completedAt: DateTime.now(),
+      );
+
+      final progress = ProgressModel(
+        categoryId: category.id,
+        categoryName: category.name,
+        imagePath: category.imagePath,
+        bestScore: percentage.round(),
+        lastScore: percentage.round(),
+        attempts: 1, // akan diakumulasi di ProgressService
+        lastProgress: total,
+        totalQuestions: total,
+        isCompleted: true,
+        lastPlayedAt: DateTime.now(),
+      );
+
+      // Simpan paralel untuk efisiensi
+      await Future.wait([
+        _resultService.saveQuizSession(session),
+        _resultService.addPointsToUser(uid, points),
+        _progressService.saveProgress(uid, category.id, progress),
+      ]);
+
+      // Refresh data user di AuthController agar totalPoints di HomeView update
+      await _authController.refreshUser();
+    } catch (e) {
+      // Non-critical untuk UX — dialog sudah tampil, simpan gagal tidak crash
+      // ignore: avoid_print
+      print('Warning: gagal menyimpan hasil quiz: $e');
+    } finally {
+      isSaving.value = false;
+    }
+  }
+
+  // ─── DIALOG HASIL ──────────────────────────────────────────────────────────
+
+  void _showResultDialog({
+    required int correct,
+    required int total,
+    required int points,
+    required double percentage,
+    required String grade,
+  }) {
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -203,7 +309,10 @@ class QuizController extends GetxController {
               ),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFB347).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -245,6 +354,7 @@ class QuizController extends GetxController {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
+                        // Kembali ke APP dan trigger refresh progress di HomeController
                         Get.offNamedUntil(Routes.APP, (route) => false);
                       },
                       style: ElevatedButton.styleFrom(
@@ -270,9 +380,10 @@ class QuizController extends GetxController {
     );
   }
 
+  // ─── RESET & RESTART ───────────────────────────────────────────────────────
+
   void resetQuiz() {
     _autoAdvanceTimer?.cancel();
-    // Re-fetch untuk shuffle ulang soal
     fetchQuestions(categoryName.value);
   }
 
@@ -304,7 +415,10 @@ class QuizController extends GetxController {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text('Ya, Ulang', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Ya, Ulang',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
