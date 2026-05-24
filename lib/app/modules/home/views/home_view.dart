@@ -1,12 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:get/get_core/src/get_main.dart';
+import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:get/get_state_manager/src/simple/get_view.dart';
 import 'package:santarana/app/modules/home/controllers/home_controller.dart';
+import 'package:santarana/shared/controllers/auth_controller.dart';
+import 'package:santarana/shared/models/category_model.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // AuthController sudah di-inject di main.dart sebagai GetxService
+    final authController = Get.find<AuthController>();
+
     return Scaffold(
       backgroundColor: const Color(0xFFFFF8E7),
       body: SafeArea(
@@ -17,8 +25,10 @@ class HomeView extends GetView<HomeController> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeader(context),
+                  // ── Header dengan username dinamis ──────────────────────
+                  _buildHeader(authController),
                   const SizedBox(height: 80),
+
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
@@ -34,6 +44,7 @@ class HomeView extends GetView<HomeController> {
                   const SizedBox(height: 16),
                   _buildFeaturedGameCard(),
                   const SizedBox(height: 24),
+
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
@@ -46,60 +57,18 @@ class HomeView extends GetView<HomeController> {
                     ),
                   ),
                   const SizedBox(height: 12),
+
+                  // ── Kategori DINAMIS dari Firestore ─────────────────────
                   _buildGameCategories(),
                   const SizedBox(height: 24),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      'Pengingat',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Color(0xff714f4c),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildReminderCard(
-                    title: 'Kuis 1',
-                    subtitle: 'Pakaian Adat Nusantara',
-                    imagePath: 'assets/images/pakaian_adat1.png',
-                    progress: 9,
-                    total: 15,
-                    level: '15 Pertanyaan',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildReminderCard(
-                    title: 'Kuis 3',
-                    subtitle: 'Rumah Adat Nusantara',
-                    imagePath: 'assets/images/rumah_adat.png',
-                    progress: 5,
-                    total: 15,
-                    level: '15 Pertanyaan',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildReminderCard(
-                    title: 'Kuis 5',
-                    subtitle: 'Senjata Tradisional',
-                    imagePath: 'assets/images/senjata_adat_tradisional.png',
-                    progress: 5,
-                    total: 15,
-                    level: '15 Pertanyaan',
-                  ),
-                  const SizedBox(height: 12),
-                  _buildReminderCard(
-                    title: 'Kuis 4',
-                    subtitle: 'Makanan Nusantara',
-                    imagePath: 'assets/images/makanan_nusantara.png',
-                    progress: 5,
-                    total: 15,
-                    level: '15 Pertanyaan',
-                  ),
+
+                  // ── Pengingat: DISEMBUNYIKAN di Fase 3 ─────────────────
+                  // Akan diaktifkan kembali di Fase 4 (user_progress)
                   const SizedBox(height: 100),
                 ],
               ),
 
-              // Character
+              // ── Character mascot ───────────────────────────────────────
               Positioned(
                 top: 88,
                 right: 40,
@@ -115,7 +84,7 @@ class HomeView extends GetView<HomeController> {
                 ),
               ),
 
-              // Aktivitas Terakhir Card
+              // ── Aktivitas Terakhir Card ────────────────────────────────
               Positioned(
                 top: 220,
                 left: 0,
@@ -129,7 +98,8 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  Widget _buildHeader(BuildContext context) {
+  // ── HEADER dengan username dari AuthController ────────────────────────────
+  Widget _buildHeader(AuthController authController) {
     return Container(
       height: 280,
       decoration: const BoxDecoration(
@@ -167,6 +137,7 @@ class HomeView extends GetView<HomeController> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // "Halo,"
                     Stack(
                       children: [
                         Text(
@@ -190,33 +161,43 @@ class HomeView extends GetView<HomeController> {
                         ),
                       ],
                     ),
-                    Stack(
-                      children: [
-                        Text(
-                          'Jhon Doe',
-                          style: TextStyle(
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            foreground: Paint()
-                              ..style = PaintingStyle.stroke
-                              ..strokeWidth = 2
-                              ..color = const Color(0xFFC4986A),
+
+                    // Username DINAMIS dari AuthController
+                    Obx(() {
+                      final name = authController.username;
+                      return Stack(
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              foreground: Paint()
+                                ..style = PaintingStyle.stroke
+                                ..strokeWidth = 2
+                                ..color = const Color(0xFFC4986A),
+                            ),
                           ),
-                        ),
-                        const Text(
-                          'Jhon Doe',
-                          style: TextStyle(
-                            fontSize: 26,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontSize: 26,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      );
+                    }),
                   ],
                 ),
+
+                // Notifikasi + Avatar
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(25),
@@ -243,8 +224,11 @@ class HomeView extends GetView<HomeController> {
                             'assets/images/user.png',
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) =>
-                                const Icon(Icons.person,
-                                    color: Color(0xFF8B4789), size: 18),
+                                const Icon(
+                                  Icons.person,
+                                  color: Color(0xFF8B4789),
+                                  size: 18,
+                                ),
                           ),
                         ),
                       ),
@@ -254,6 +238,8 @@ class HomeView extends GetView<HomeController> {
               ],
             ),
             const SizedBox(height: 21),
+
+            // Total Poin DINAMIS dari AuthController
             Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -281,22 +267,27 @@ class HomeView extends GetView<HomeController> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 45, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(30),
-                    border: Border.all(
-                      color: const Color(0xFFC4986A).withValues(alpha: 0.73),
-                      width: 3,
+                Obx(
+                  () => Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 45,
+                      vertical: 6,
                     ),
-                  ),
-                  child: const Text(
-                    '6370',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(30),
+                      border: Border.all(
+                        color: const Color(0xFFC4986A).withValues(alpha: 0.73),
+                        width: 3,
+                      ),
+                    ),
+                    child: Text(
+                      '${authController.totalPoints}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
                     ),
                   ),
                 ),
@@ -308,9 +299,9 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
+  // ── AKTIVITAS TERAKHIR (masih placeholder, akan dinamis di Fase 4) ────────
   Widget _buildAktivitasTerakhirCard() {
     return GestureDetector(
-      // ✅ Navigator.pushNamed → controller.goToQuiz()
       onTap: () => controller.goToQuiz('Tarian Tradisional'),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -356,15 +347,22 @@ class HomeView extends GetView<HomeController> {
                             color: Colors.black87,
                           ),
                         ),
-                        Icon(Icons.arrow_forward_ios,
-                            size: 16, color: Colors.grey[600]),
+                        Icon(
+                          Icons.arrow_forward_ios,
+                          size: 16,
+                          color: Colors.grey[600],
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text('Kuis 3',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                    Text('15 pertanyaan',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    Text(
+                      'Kuis 3',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
+                    Text(
+                      '15 pertanyaan',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                    ),
                     const SizedBox(height: 6),
                     Row(
                       children: [
@@ -375,17 +373,21 @@ class HomeView extends GetView<HomeController> {
                               value: 9 / 15,
                               backgroundColor: Colors.grey[300],
                               valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Color(0xFFFFB347)),
+                                Color(0xFFFFB347),
+                              ),
                               minHeight: 8,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
-                        const Text('9/15',
-                            style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87)),
+                        const Text(
+                          '9/15',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black87,
+                          ),
+                        ),
                       ],
                     ),
                   ],
@@ -398,6 +400,7 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
+  // ── FEATURED GAME CARD ────────────────────────────────────────────────────
   Widget _buildFeaturedGameCard() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -461,8 +464,11 @@ class HomeView extends GetView<HomeController> {
                           height: 35,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.gamepad,
-                                  color: Colors.white, size: 35),
+                              const Icon(
+                                Icons.gamepad,
+                                color: Colors.white,
+                                size: 35,
+                              ),
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
@@ -482,8 +488,9 @@ class HomeView extends GetView<HomeController> {
                     Text(
                       '21/01/2026',
                       style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.white.withValues(alpha: 0.9)),
+                        fontSize: 12,
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
                     ),
                   ],
                 ),
@@ -498,8 +505,11 @@ class HomeView extends GetView<HomeController> {
                     color: Colors.white.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.arrow_forward,
-                      color: Colors.white, size: 18),
+                  child: const Icon(
+                    Icons.arrow_forward,
+                    color: Colors.white,
+                    size: 18,
+                  ),
                 ),
               ),
             ],
@@ -509,41 +519,57 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
+  // ── KATEGORI GAME — DINAMIS dari Firestore ────────────────────────────────
   Widget _buildGameCategories() {
     return SizedBox(
       height: 100,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        scrollDirection: Axis.horizontal,
-        children: [
-          _buildCategoryCard('Tarian Tradisional', 'assets/images/tarian_adat.png'),
-          const SizedBox(width: 12),
-          _buildCategoryCard('Makanan Nusantara', 'assets/images/makanan_nusantara.png'),
-          const SizedBox(width: 12),
-          _buildCategoryCard('Pakaian Adat Nusantara', 'assets/images/pakaian_adat1.png'),
-          const SizedBox(width: 12),
-          _buildCategoryCard('Rumah Adat Nusantara', 'assets/images/rumah_adat.png'),
-          const SizedBox(width: 12),
-          _buildCategoryCard('Senjata Tradisional', 'assets/images/senjata_adat_tradisional.png'),
-          const SizedBox(width: 12),
-          _buildCategoryCard('Musik Tradisional Nusantara', 'assets/images/musik_nusantara.png'),
-        ],
-      ),
+      child: Obx(() {
+        // Loading state
+        if (controller.isLoadingCategories.value) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFFFFB347)),
+          );
+        }
+
+        // Empty state
+        if (controller.categories.isEmpty) {
+          return const Center(
+            child: Text(
+              'Belum ada kategori',
+              style: TextStyle(color: Colors.grey),
+            ),
+          );
+        }
+
+        // Data dari Firestore
+        return ListView.separated(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          scrollDirection: Axis.horizontal,
+          itemCount: controller.categories.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder: (_, i) {
+            final cat = controller.categories[i];
+            return _buildCategoryCard(cat);
+          },
+        );
+      }),
     );
   }
 
-  Widget _buildCategoryCard(String title, String imagePath) {
+  // ── CATEGORY CARD — pakai CategoryModel ───────────────────────────────────
+  Widget _buildCategoryCard(CategoryModel category) {
     return GestureDetector(
-      // ✅ context tidak diperlukan lagi
-      onTap: () => controller.goToQuiz(title),
+      onTap: () => controller.goToQuiz(category.name),
       child: Container(
         width: 140,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
           image: DecorationImage(
-            image: AssetImage(imagePath),
+            image: AssetImage(category.imagePath),
             fit: BoxFit.cover,
+            onError: (_, __) {},
           ),
+          color: const Color(0xFF5A8B7E), // fallback jika gambar error
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.1),
@@ -558,144 +584,19 @@ class HomeView extends GetView<HomeController> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                Colors.black.withValues(alpha: 0.5),
-              ],
+              colors: [Colors.transparent, Colors.black.withValues(alpha: 0.5)],
             ),
           ),
           padding: const EdgeInsets.all(12),
           alignment: Alignment.bottomLeft,
           child: Text(
-            title,
+            category.name,
             style: const TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: Colors.white,
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildReminderCard({
-    required String title,
-    required String subtitle,
-    required String imagePath,
-    required int progress,
-    required int total,
-    required String level,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 75,
-              height: 75,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(50),
-                image: DecorationImage(
-                  image: AssetImage(imagePath),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(title,
-                              style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.black87)),
-                          Text(subtitle,
-                              style: TextStyle(
-                                  fontSize: 12, color: Colors.grey[600])),
-                        ],
-                      ),
-                      Icon(Icons.arrow_forward_ios,
-                          size: 16, color: Colors.grey[600]),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(level,
-                      style: TextStyle(fontSize: 10, color: Colors.grey[600])),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: LinearProgressIndicator(
-                            value: progress / total,
-                            backgroundColor: Colors.grey[300],
-                            valueColor: const AlwaysStoppedAnimation<Color>(
-                                Color(0xFFFFB347)),
-                            minHeight: 8,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text('$progress/$total',
-                          style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: GestureDetector(
-                      // ✅ context tidak diperlukan lagi
-                      onTap: () => controller.goToQuiz(subtitle),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                              color: Colors.grey[300]!, width: 1.5),
-                        ),
-                        child: const Text(
-                          'Lanjut',
-                          style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.black87),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
         ),
       ),
     );

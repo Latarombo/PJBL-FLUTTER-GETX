@@ -12,7 +12,11 @@ class QuizView extends GetView<QuizController> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final question = controller.currentQuestion;
+      if (controller.isLoading.value) {
+        return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      }
+      if (controller.questions.isEmpty) return const Scaffold(body: SizedBox());
+      final question = controller.currentQuestion!;
 
       return Scaffold(
         backgroundColor: AppColors.background,
@@ -24,7 +28,7 @@ class QuizView extends GetView<QuizController> {
             onPressed: () => Get.back(),
           ),
           title: Text(
-            controller.quizSession.category,
+            controller.categoryName.value,
             style: const TextStyle(
               color: AppColors.textPrimary,
               fontSize: 18,
@@ -61,7 +65,7 @@ class QuizView extends GetView<QuizController> {
                 child: Row(
                   children: [
                     Text(
-                      '${controller.currentQuestionIndex.value + 1} dari ${controller.quizSession.totalQuestions}',
+                      '${controller.currentQuestionIndex.value + 1} dari ${controller.totalQuestions}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -75,7 +79,7 @@ class QuizView extends GetView<QuizController> {
                         child: LinearProgressIndicator(
                           value:
                               (controller.currentQuestionIndex.value + 1) /
-                              controller.quizSession.totalQuestions,
+                              controller.totalQuestions,
                           backgroundColor: Colors.grey[300],
                           valueColor: const AlwaysStoppedAnimation<Color>(
                             AppColors.accent,
@@ -217,11 +221,11 @@ class QuizView extends GetView<QuizController> {
   Widget _buildOptionCard(int index, question) {
     final isSelected = controller.selectedAnswerIndex.value == index;
     final isAnswered = controller.isAnswered.value;
-    final isCorrect = isAnswered && index == question.correctAnswerIndex;
+    final isCorrect = isAnswered && index == question.correctIndex;
     final isWrong =
         isAnswered &&
         controller.selectedAnswerIndex.value == index &&
-        index != question.correctAnswerIndex;
+        index != question.correctIndex;
 
     Color bgColor = Colors.white;
     Color borderColor = const Color(0xFFE0E0E0);

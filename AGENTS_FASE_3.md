@@ -368,16 +368,16 @@ Perubahan field:
 ## ✅ CHECKLIST FASE 3
 
 ```
-⬜ Buat lib/shared/models/category_model.dart
-⬜ Buat lib/shared/models/question_model.dart
-⬜ Buat lib/shared/services/quiz_service.dart
-⬜ Input 6 kategori ke Firestore (via Firebase Console atau script)
-⬜ Input 90 soal ke Firestore (via script Dart)
-⬜ Update home_controller.dart (fetchCategories)
-⬜ Update home_view.dart (kategori dinamis + username dari AuthController)
-⬜ Update quiz_controller.dart (fetch soal dari Firestore)
-⬜ Update quiz_model.dart (sesuaikan dengan QuestionModel baru jika perlu)
-⬜ Hapus quiz_data.dart setelah semua soal berhasil di Firestore
+✅ Buat lib/shared/models/category_model.dart
+✅ Buat lib/shared/models/question_model.dart
+✅ Buat lib/shared/services/quiz_service.dart
+✅ Input 6 kategori ke Firestore (via Firebase Console atau script)
+✅ Input 90 soal ke Firestore (via script Dart)
+✅ Update home_controller.dart (fetchCategories)
+✅ Update home_view.dart (kategori dinamis + username dari AuthController)
+✅ Update quiz_controller.dart (fetch soal dari Firestore)
+✅ Update quiz_model.dart (sesuaikan dengan QuestionModel baru jika perlu)
+✅ Hapus quiz_data.dart setelah semua soal berhasil di Firestore
 ⬜ Test: kategori muncul di HomeView dari Firestore
 ⬜ Test: soal muncul di QuizView dari Firestore
 ⬜ Test: soal ter-shuffle tiap sesi baru

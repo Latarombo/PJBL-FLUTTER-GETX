@@ -7,16 +7,19 @@ import 'package:get/get_navigation/src/snackbar/snackbar.dart';
 import 'package:get/get_rx/src/rx_types/rx_types.dart';
 import 'package:get/get_state_manager/src/simple/get_controllers.dart';
 import 'package:santarana/app/routes/app_pages.dart';
-import 'package:santarana/shared/data/quiz_data.dart';
-import 'package:santarana/shared/data/quiz_model.dart';
+import 'package:santarana/shared/models/question_model.dart';
+import 'package:santarana/shared/services/quiz_service.dart';
 
 class QuizController extends GetxController {
-  // Ambil category dari Get.arguments (ganti widget.category)
-  late QuizSession quizSession;
+  final QuizService _quizService = QuizService();
 
-  // Semua state menjadi .obs
+  // ─── STATE ─────────────────────────────────────────────────────────────────
+  final isLoading = false.obs;
+  final questions = <QuestionModel>[].obs;
+  final categoryName = ''.obs;        // nama kategori yang sedang dimainkan
+
   final currentQuestionIndex = 0.obs;
-  final selectedAnswerIndex = RxnInt(); // nullable int
+  final selectedAnswerIndex = RxnInt();
   final isAnswered = false.obs;
   final correctAnswers = 0.obs;
   final totalPoints = 0.obs;
@@ -24,18 +27,75 @@ class QuizController extends GetxController {
 
   Timer? _autoAdvanceTimer;
 
-  // Getter untuk soal saat ini
-  QuizQuestion get currentQuestion =>
-      quizSession.questions[currentQuestionIndex.value];
+  // ─── GETTERS ───────────────────────────────────────────────────────────────
 
+  /// Soal yang sedang ditampilkan
+  QuestionModel? get currentQuestion =>
+      questions.isNotEmpty ? questions[currentQuestionIndex.value] : null;
+
+  /// Total soal dalam sesi ini
+  int get totalQuestions => questions.length;
+
+  // ─── LIFECYCLE ─────────────────────────────────────────────────────────────
   @override
   void onInit() {
     super.onInit();
-    // Ambil argument dari GetX (ganti settings.arguments)
     final args = Get.arguments as Map<String, dynamic>?;
-    final category = args?['category'] as String? ?? 'Tarian Tradisional';
-    quizSession = QuizData.getQuizByCategory(category);
+    final category = args?['category'] as String? ?? '';
+    categoryName.value = category;
+    fetchQuestions(category);
   }
+
+  // ─── FETCH ─────────────────────────────────────────────────────────────────
+
+  /// Fetch soal dari Firestore berdasarkan nama kategori
+  /// Flow: nama kategori → cari categoryId → fetch questions by categoryId
+  Future<void> fetchQuestions(String name) async {
+    try {
+      isLoading.value = true;
+
+      // Step 1: Cari kategori berdasarkan nama untuk dapat categoryId
+      final category = await _quizService.getCategoryByName(name);
+      if (category == null) {
+        Get.snackbar(
+          'Error',
+          'Kategori "$name" tidak ditemukan',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      // Step 2: Fetch soal menggunakan categoryId (document ID)
+      final result = await _quizService.getQuestionsByCategoryId(category.id);
+      if (result.isEmpty) {
+        Get.snackbar(
+          'Info',
+          'Belum ada soal untuk kategori ini',
+          backgroundColor: Colors.orange,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+        return;
+      }
+
+      questions.value = result;
+      _resetState();
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal memuat soal',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // ─── QUIZ LOGIC ────────────────────────────────────────────────────────────
 
   void selectAnswer(int index) {
     if (!isAnswered.value) {
@@ -58,13 +118,12 @@ class QuizController extends GetxController {
 
     isAnswered.value = true;
 
-    if (selectedAnswerIndex.value == currentQuestion.correctAnswerIndex) {
+    final correct = currentQuestion?.correctIndex ?? -1;
+    if (selectedAnswerIndex.value == correct) {
       correctAnswers.value++;
       streak.value++;
-
-      int basePoint = 10;
-      int bonus = streak.value >= 3 ? 5 : 0;
-      totalPoints.value += basePoint + bonus;
+      final bonus = streak.value >= 3 ? 5 : 0;
+      totalPoints.value += 10 + bonus;
     } else {
       streak.value = 0;
     }
@@ -73,7 +132,7 @@ class QuizController extends GetxController {
   }
 
   void _nextQuestion() {
-    if (currentQuestionIndex.value < quizSession.questions.length - 1) {
+    if (currentQuestionIndex.value < questions.length - 1) {
       currentQuestionIndex.value++;
       selectedAnswerIndex.value = null;
       isAnswered.value = false;
@@ -83,12 +142,23 @@ class QuizController extends GetxController {
   }
 
   void _showResultDialog() {
-    final result = QuizResult(
-      correctAnswers: correctAnswers.value,
-      totalQuestions: quizSession.totalQuestions,
-      pointsEarned: totalPoints.value,
-      completedAt: DateTime.now(),
-    );
+    final correct = correctAnswers.value;
+    final total = totalQuestions;
+    final points = totalPoints.value;
+    final percentage = total > 0 ? (correct / total) * 100 : 0.0;
+
+    String grade;
+    if (percentage >= 90) {
+      grade = 'Sempurna!';
+    } else if (percentage >= 80) {
+      grade = 'Sangat Baik!';
+    } else if (percentage >= 70) {
+      grade = 'Baik';
+    } else if (percentage >= 60) {
+      grade = 'Cukup';
+    } else {
+      grade = 'Perlu Belajar Lagi';
+    }
 
     Get.dialog(
       Dialog(
@@ -102,20 +172,20 @@ class QuizController extends GetxController {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: result.percentage >= 70
+                  color: percentage >= 70
                       ? Colors.green.withValues(alpha: 0.1)
                       : Colors.orange.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  result.percentage >= 70 ? Icons.emoji_events : Icons.refresh,
+                  percentage >= 70 ? Icons.emoji_events : Icons.refresh,
                   size: 40,
-                  color: result.percentage >= 70 ? Colors.green : Colors.orange,
+                  color: percentage >= 70 ? Colors.green : Colors.orange,
                 ),
               ),
               const SizedBox(height: 20),
               Text(
-                result.grade,
+                grade,
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -123,20 +193,17 @@ class QuizController extends GetxController {
               ),
               const SizedBox(height: 12),
               Text(
-                'Skor: ${result.correctAnswers}/${result.totalQuestions}',
+                'Skor: $correct/$total',
                 style: TextStyle(fontSize: 18, color: Colors.grey[700]),
               ),
               const SizedBox(height: 8),
               Text(
-                'Persentase: ${result.percentage.toStringAsFixed(1)}%',
+                'Persentase: ${percentage.toStringAsFixed(1)}%',
                 style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
               const SizedBox(height: 8),
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 8,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFB347).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -147,7 +214,7 @@ class QuizController extends GetxController {
                     const Icon(Icons.star, color: Color(0xFFFFB347), size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      '+${result.pointsEarned} Poin',
+                      '+$points Poin',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -162,7 +229,7 @@ class QuizController extends GetxController {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: () {
-                        Get.back(); // tutup dialog
+                        Get.back();
                         resetQuiz();
                       },
                       style: OutlinedButton.styleFrom(
@@ -205,12 +272,8 @@ class QuizController extends GetxController {
 
   void resetQuiz() {
     _autoAdvanceTimer?.cancel();
-    currentQuestionIndex.value = 0;
-    selectedAnswerIndex.value = null;
-    isAnswered.value = false;
-    correctAnswers.value = 0;
-    totalPoints.value = 0;
-    streak.value = 0;
+    // Re-fetch untuk shuffle ulang soal
+    fetchQuestions(categoryName.value);
   }
 
   void showRestartDialog() {
@@ -241,14 +304,20 @@ class QuizController extends GetxController {
                 borderRadius: BorderRadius.circular(10),
               ),
             ),
-            child: const Text(
-              'Ya, Ulang',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Ya, Ulang', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
+  }
+
+  void _resetState() {
+    currentQuestionIndex.value = 0;
+    selectedAnswerIndex.value = null;
+    isAnswered.value = false;
+    correctAnswers.value = 0;
+    totalPoints.value = 0;
+    streak.value = 0;
   }
 
   @override
