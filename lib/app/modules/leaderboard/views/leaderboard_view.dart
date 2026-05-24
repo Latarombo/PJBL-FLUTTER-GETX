@@ -1,10 +1,10 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:get/get_state_manager/src/simple/get_view.dart';
 import 'package:santarana/app/modules/leaderboard/controllers/leaderboard_controller.dart';
+import 'package:santarana/shared/models/leaderboard_model.dart';
 
 class LeaderboardView extends GetView<LeaderboardController> {
   const LeaderboardView({super.key});
@@ -93,59 +93,102 @@ class LeaderboardView extends GetView<LeaderboardController> {
   Widget _buildPodium() {
     return SizedBox(
       height: 340,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SizedBox(
-              height: 210,
-              width: double.infinity,
-              child: Image.asset('assets/images/cloud.png', fit: BoxFit.fill),
+      child: Obx(() {
+        final top = controller.top3;
+
+        // Upadate
+        if (controller.isLoading.value) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFFFFB347)),
+          );
+        }
+
+        if (top.length < 3) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.leaderboard,
+                  size: 48,
+                  color: Color(0xFFFFB347),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  top.isEmpty
+                      ? 'Belum ada data leaderboard'
+                      : 'Butuh minimal 3 pemain\nuntuk menampilkan podium',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF270F0F),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Saat ini: ${top.length} pemain',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                ),
+              ],
             ),
-          ),
-          Positioned(
-            left: 20,
-            bottom: 40,
-            child: _buildPodiumItem(
-              rank: 2,
-              username: 'adalahpokoknya',
-              score: 12500,
-              avatarAsset: 'assets/images/avatar4.png',
-              wingsAsset: 'assets/images/rank_2.png',
-              podiumColor: const Color(0xFFC0C0C0),
+          );
+        }
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: SizedBox(
+                height: 210,
+                width: double.infinity,
+                child: Image.asset('assets/images/cloud.png', fit: BoxFit.fill),
+              ),
             ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 100,
-            child: _buildPodiumItem(
-              rank: 1,
-              username: 'keisya_pfp',
-              score: 8450,
-              avatarAsset: 'assets/images/avatar3.png',
-              wingsAsset: 'assets/images/rank_1.png',
-              podiumColor: const Color(0xFFFFD700),
-              isFirst: true,
+            Positioned(
+              left: 20,
+              bottom: 40,
+              child: _buildPodiumItem(
+                rank: 2,
+                username: top[1].username,
+                score: top[1].totalPoints,
+                avatarAsset: 'assets/images/avatar4.png',
+                wingsAsset: 'assets/images/rank_2.png',
+                podiumColor: const Color(0xFFC0C0C0),
+              ),
             ),
-          ),
-          Positioned(
-            right: 20,
-            bottom: 40,
-            child: _buildPodiumItem(
-              rank: 3,
-              username: 'Najwa_Miniww',
-              score: 6370,
-              avatarAsset: 'assets/images/user.png',
-              wingsAsset: 'assets/images/rank_3.png',
-              podiumColor: const Color(0xFFCD7F32),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 100,
+              child: _buildPodiumItem(
+                rank: 1,
+                username: top[0].username,
+                score: top[0].totalPoints,
+                avatarAsset: 'assets/images/avatar3.png',
+                wingsAsset: 'assets/images/rank_1.png',
+                podiumColor: const Color(0xFFFFD700),
+                isFirst: true,
+              ),
             ),
-          ),
-        ],
-      ),
+            Positioned(
+              right: 20,
+              bottom: 40,
+              child: _buildPodiumItem(
+                rank: 3,
+                username: top[2].username,
+                score: top[2].totalPoints,
+                avatarAsset: 'assets/images/user.png',
+                wingsAsset: 'assets/images/rank_3.png',
+                podiumColor: const Color(0xFFCD7F32),
+              ),
+            ),
+          ],
+        );
+      }),
     );
   }
 
@@ -216,7 +259,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
               Positioned(
                 left: 0,
                 right: 0,
-                bottom: isFirst ? 32 : 32,
+                bottom: 32,
                 child: Center(
                   child: Stack(
                     children: [
@@ -279,20 +322,27 @@ class LeaderboardView extends GetView<LeaderboardController> {
   }
 
   Widget _buildLeaderboardList() {
-    // Gunakan data dari controller
-    return Obx(
-      () => Padding(
+    return Obx(() {
+      if (controller.isLoading.value) {
+        return const Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(
+            child: CircularProgressIndicator(color: Color(0xFFFFB347)),
+          ),
+        );
+      }
+      return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
         child: Column(
           children: controller.leaderboardData
               .map((entry) => _buildLeaderboardCard(entry))
               .toList(),
         ),
-      ),
-    );
+      );
+    });
   }
 
-  Widget _buildLeaderboardCard(LeaderboardEntry entry) {
+  Widget _buildLeaderboardCard(LeaderboardModel entry) {
     Gradient? cardGradient;
     Color? cardColor;
 
@@ -363,7 +413,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
             ),
             child: ClipOval(
               child: Image.asset(
-                entry.avatarAsset,
+                'assets/images/user.png',
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) => const Icon(
                   Icons.person,
@@ -387,7 +437,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
           ),
           const SizedBox(width: 12),
           Text(
-            entry.score.toString(),
+            entry.totalPoints.toString(),
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -400,91 +450,90 @@ class LeaderboardView extends GetView<LeaderboardController> {
   }
 
   Widget _buildCurrentUserCard() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF8B3A3A), Color(0xFFB85C52)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
+    return Obx(() {
+      final userEntry = controller.currentUserEntry;
+      if (userEntry == null) return const SizedBox.shrink();
+
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF8B3A3A), Color(0xFFB85C52)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(2, 6),
+              ),
+            ],
           ),
-          borderRadius: BorderRadius.circular(12),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(2, 6),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            const SizedBox(
-              width: 30,
-              child: Text(
-                '3',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xfff7d9bc),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              width: 45,
-              height: 45,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFFFC4D6),
-                border: Border.all(color: Colors.white, width: 3),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.2),
-                    blurRadius: 4,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: ClipOval(
-                child: Image.asset(
-                  'assets/images/user.png',
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => const Icon(
-                    Icons.person,
-                    size: 28,
-                    color: Color(0xFF8B4789),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 30,
+                child: Text(
+                  userEntry.rank.toString(),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xfff7d9bc),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Anda',
-                style: TextStyle(
+              const SizedBox(width: 12),
+              Container(
+                width: 45,
+                height: 45,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFFFC4D6),
+                  border: Border.all(color: Colors.white, width: 3),
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/user.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const Icon(
+                      Icons.person,
+                      size: 28,
+                      color: Color(0xFF8B4789),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  userEntry.username,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xfff7d9bc),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Text(
+                userEntry.totalPoints.toString(),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Color(0xfff7d9bc),
                 ),
               ),
-            ),
-            const Text(
-              '6370',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Color(0xfff7d9bc),
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
-    );
-  }
-}
+      );
+    });
+  } // ← penutup _buildCurrentUserCard()
+} // ← penutup class LeaderboardView
 
 class LeaderboardBackgroundPainter extends CustomPainter {
   @override
@@ -492,11 +541,7 @@ class LeaderboardBackgroundPainter extends CustomPainter {
     final gradient = LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: [
-        const Color(0xFFF9F4E4),
-        const Color(0xFFFFE8D6),
-        const Color(0xffd2947b),
-      ],
+      colors: const [Color(0xFFF9F4E4), Color(0xFFFFE8D6), Color(0xffd2947b)],
     );
 
     final paint = Paint()

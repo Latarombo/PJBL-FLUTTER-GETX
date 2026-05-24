@@ -1,4 +1,5 @@
 # ⬜ FASE 5 — Leaderboard Real-time
+
 > Baca `AGENTS.md` (core) terlebih dahulu, lalu baca file ini.
 > Status: **STANDBY** — kerjakan setelah Fase 4 selesai & ter-checklist semua.
 > Tujuan: Leaderboard menampilkan data nyata dari Firestore secara real-time.
@@ -296,15 +297,15 @@ leaderboard/{uid}
 ## ✅ CHECKLIST FASE 5
 
 ```
-⬜ Buat lib/shared/models/leaderboard_model.dart
-⬜ Buat lib/shared/services/leaderboard_service.dart
-⬜ Update leaderboard_controller.dart (stream dari Firestore, hapus hardcode)
-⬜ Update leaderboard_view.dart (podium dari top3)
-⬜ Update leaderboard_view.dart (current user card data nyata)
-⬜ Update quiz_controller.dart (panggil updateLeaderboardEntry setelah quiz)
-⬜ Test: selesaikan quiz → cek leaderboard collection di Firestore
-⬜ Test: leaderboard view update real-time tanpa refresh manual
-⬜ Test: podium menampilkan top 3 yang benar
-⬜ Test: current user card menampilkan rank & poin yang benar
-⬜ Test: 2 user main quiz — urutan leaderboard berubah sesuai poin
+✅ Buat lib/shared/models/leaderboard_model.dart
+✅ Buat lib/shared/services/leaderboard_service.dart
+✅ Update leaderboard_controller.dart (stream dari Firestore, hapus hardcode)
+✅ Update leaderboard_view.dart (podium dari top3)
+✅ Update leaderboard_view.dart (current user card data nyata)
+✅ Update quiz_controller.dart (panggil updateLeaderboardEntry setelah quiz)
+✅ Test: selesaikan quiz → cek leaderboard collection di Firestore
+✅ Test: leaderboard view update real-time tanpa refresh manual
+✅ Test: podium menampilkan top 3 yang benar
+✅ Test: current user card menampilkan rank & poin yang benar
+✅ Test: 2 user main quiz — urutan leaderboard berubah sesuai poin
 ```

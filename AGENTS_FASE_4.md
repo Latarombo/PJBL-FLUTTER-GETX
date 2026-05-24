@@ -443,8 +443,8 @@ user_progress/{uid}/categories/{categoryId}
 ✅ Update home_controller.dart (load progress user)
 ✅ Update home_view.dart (reminder card & aktivitas terakhir dinamis)
 ✅ Update home_view.dart (total poin dari AuthController)
-⬜ Test: selesaikan quiz → cek quiz_sessions di Firestore Console
-⬜ Test: poin user bertambah di Firestore users/{uid}
-⬜ Test: progress muncul di HomeView reminder cards
-⬜ Test: quiz kedua kali → bestScore terupdate jika lebih tinggi
+✅ Test: selesaikan quiz → cek quiz_sessions di Firestore Console
+✅ Test: poin user bertambah di Firestore users/{uid}
+✅ Test: progress muncul di HomeView reminder cards
+✅ Test: quiz kedua kali → bestScore terupdate jika lebih tinggi
 ```

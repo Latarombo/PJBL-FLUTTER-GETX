@@ -13,6 +13,7 @@ import 'package:santarana/shared/models/category_model.dart';
 import 'package:santarana/shared/models/progress_model.dart';
 import 'package:santarana/shared/models/question_model.dart';
 import 'package:santarana/shared/models/quiz_session_model.dart';
+import 'package:santarana/shared/services/leaderboard_service.dart';
 import 'package:santarana/shared/services/progress_service.dart';
 import 'package:santarana/shared/services/quiz_result_service.dart';
 import 'package:santarana/shared/services/quiz_service.dart';
@@ -21,6 +22,7 @@ class QuizController extends GetxController {
   final QuizService _quizService = QuizService();
   final QuizResultService _resultService = QuizResultService();
   final ProgressService _progressService = ProgressService();
+  final LeaderboardService _leaderboardService = LeaderboardService();
 
   // AuthController diakses via Get.find — sudah di-inject di main.dart
   AuthController get _authController => Get.find<AuthController>();
@@ -244,6 +246,13 @@ class QuizController extends GetxController {
         _resultService.saveQuizSession(session),
         _resultService.addPointsToUser(uid, points),
         _progressService.saveProgress(uid, category.id, progress),
+        _leaderboardService.updateLeaderboardEntry(
+          uid,
+          _authController.username,
+          _authController.totalPoints +
+              points, // totalPoints sebelum refresh + poin baru
+          avatarUrl: _authController.avatarUrl,
+        ),
       ]);
 
       // Refresh data user di AuthController agar totalPoints di HomeView update

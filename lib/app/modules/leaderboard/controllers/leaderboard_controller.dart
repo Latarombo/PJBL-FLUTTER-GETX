@@ -1,40 +1,69 @@
-import 'package:get/get_rx/src/rx_types/rx_types.dart';
-import 'package:get/get_state_manager/src/simple/get_controllers.dart';
+import 'dart:async';
 
-class LeaderboardEntry {
-  final int rank;
-  final String username;
-  final int score;
-  final String avatarAsset;
-
-  LeaderboardEntry({
-    required this.rank,
-    required this.username,
-    required this.score,
-    required this.avatarAsset,
-  });
-}
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:santarana/shared/controllers/auth_controller.dart';
+import 'package:santarana/shared/models/leaderboard_model.dart';
+import 'package:santarana/shared/services/leaderboard_service.dart';
 
 class LeaderboardController extends GetxController {
-  static const String currentUsername = 'Najwa_Miniww';
+  final LeaderboardService _leaderboardService = LeaderboardService();
+  final AuthController _authController = Get.find<AuthController>();
 
-  // Data leaderboard dipindah dari view ke controller
-  final leaderboardData = <LeaderboardEntry>[
-    LeaderboardEntry(rank: 1, username: 'keisya_pfp', score: 12500, avatarAsset: 'assets/images/avatar3.png'),
-    LeaderboardEntry(rank: 2, username: 'adalahpokoknya', score: 8450, avatarAsset: 'assets/images/avatar4.png'),
-    LeaderboardEntry(rank: 3, username: 'Najwa_Miniww', score: 6370, avatarAsset: 'assets/images/user.png'),
-    LeaderboardEntry(rank: 4, username: 'nimiwisa_laber', score: 4220, avatarAsset: 'assets/images/avatar1.png'),
-    LeaderboardEntry(rank: 5, username: 'nimiwisa_laber', score: 3400, avatarAsset: 'assets/images/avatar2.png'),
-    LeaderboardEntry(rank: 6, username: 'nimiwisa_laber', score: 2500, avatarAsset: 'assets/images/avatar3.png'),
-    LeaderboardEntry(rank: 7, username: 'nimiwisa_laber', score: 1580, avatarAsset: 'assets/images/avatar4.png'),
-    LeaderboardEntry(rank: 8, username: 'nimiwisa_laber', score: 1200, avatarAsset: 'assets/images/avatar1.png'),
-    LeaderboardEntry(rank: 9, username: 'nimiwisa_laber', score: 1100, avatarAsset: 'assets/images/avatar2.png'),
-    LeaderboardEntry(rank: 10, username: 'nimiwisa_laber', score: 1000, avatarAsset: 'assets/images/avatar3.png'),
-    LeaderboardEntry(rank: 11, username: 'nimiwisa_laber', score: 900, avatarAsset: 'assets/images/avatar4.png'),
-    LeaderboardEntry(rank: 12, username: 'nimiwisa_laber', score: 800, avatarAsset: 'assets/images/avatar1.png'),
-    LeaderboardEntry(rank: 13, username: 'nimiwisa_laber', score: 700, avatarAsset: 'assets/images/avatar2.png'),
-    LeaderboardEntry(rank: 14, username: 'nimiwisa_laber', score: 600, avatarAsset: 'assets/images/avatar3.png'),
-    LeaderboardEntry(rank: 15, username: 'nimiwisa_laber', score: 500, avatarAsset: 'assets/images/avatar4.png'),
-    LeaderboardEntry(rank: 16, username: 'nimiwisa_laber', score: 300, avatarAsset: 'assets/images/avatar1.png'),
-  ].obs;
+  final leaderboardData = <LeaderboardModel>[].obs;
+  final isLoading = true.obs;
+
+  StreamSubscription<List<LeaderboardModel>>? _subscription;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _listenLeaderboard();
+  }
+
+  void _listenLeaderboard() {
+    // Cancel subscription lama sebelum buat yang baru
+    _subscription?.cancel();
+    isLoading.value = true;
+
+    _subscription = _leaderboardService.leaderboardStream().listen(
+      (data) {
+        leaderboardData.value = data;
+        isLoading.value = false;
+      },
+      onError: (_) {
+        isLoading.value = false;
+        Get.snackbar(
+          'Error',
+          'Gagal memuat leaderboard',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+        );
+      },
+    );
+  }
+
+  /// Dipanggil saat user buka tab leaderboard
+  void refresh() {
+    _listenLeaderboard();
+  }
+
+  List<LeaderboardModel> get top3 => leaderboardData.take(3).toList();
+
+  LeaderboardModel? get currentUserEntry {
+    final uid = _authController.uid;
+    if (uid == null) return null;
+    try {
+      return leaderboardData.firstWhere((e) => e.uid == uid);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  void onClose() {
+    _subscription?.cancel();
+    super.onClose();
+  }
 }
