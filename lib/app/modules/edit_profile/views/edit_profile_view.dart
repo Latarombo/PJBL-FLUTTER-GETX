@@ -15,8 +15,11 @@ class EditProfileView extends GetView<EditProfileController> {
           backgroundColor: Colors.transparent,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                color: Color(0xFF3D1C10), size: 20),
+            icon: const Icon(
+              Icons.arrow_back_ios_new_rounded,
+              color: Color(0xFF3D1C10),
+              size: 20,
+            ),
             onPressed: controller.onBatal,
           ),
           title: const Text(
@@ -91,34 +94,40 @@ class EditProfileView extends GetView<EditProfileController> {
                       // Password Lama
                       _buildLabel('Password lama'),
                       const SizedBox(height: 6),
-                      Obx(() => _buildPasswordField(
-                            controller: controller.oldPasswordController,
-                            hint: '••••••••',
-                            obscure: controller.obscureOld.value,
-                            onToggle: controller.toggleOld,
-                          )),
+                      Obx(
+                        () => _buildPasswordField(
+                          controller: controller.oldPasswordController,
+                          hint: '••••••••',
+                          obscure: controller.obscureOld.value,
+                          onToggle: controller.toggleOld,
+                        ),
+                      ),
                       const SizedBox(height: 14),
 
                       // Password Baru
                       _buildLabel('Password baru'),
                       const SizedBox(height: 6),
-                      Obx(() => _buildPasswordField(
-                            controller: controller.newPasswordController,
-                            hint: '••••••••',
-                            obscure: controller.obscureNew.value,
-                            onToggle: controller.toggleNew,
-                          )),
+                      Obx(
+                        () => _buildPasswordField(
+                          controller: controller.newPasswordController,
+                          hint: '••••••••',
+                          obscure: controller.obscureNew.value,
+                          onToggle: controller.toggleNew,
+                        ),
+                      ),
                       const SizedBox(height: 14),
 
                       // Konfirmasi Password
                       _buildLabel('Konfirmasi password'),
                       const SizedBox(height: 6),
-                      Obx(() => _buildPasswordField(
-                            controller: controller.confirmPasswordController,
-                            hint: '••••••••',
-                            obscure: controller.obscureConfirm.value,
-                            onToggle: controller.toggleConfirm,
-                          )),
+                      Obx(
+                        () => _buildPasswordField(
+                          controller: controller.confirmPasswordController,
+                          hint: '••••••••',
+                          obscure: controller.obscureConfirm.value,
+                          onToggle: controller.toggleConfirm,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -244,8 +253,10 @@ class EditProfileView extends GetView<EditProfileController> {
         hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
         filled: true,
         fillColor: const Color(0xFFF9F4EE),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
@@ -256,8 +267,7 @@ class EditProfileView extends GetView<EditProfileController> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: Color(0xFF8B3A3A), width: 1.8),
+          borderSide: const BorderSide(color: Color(0xFF8B3A3A), width: 1.8),
         ),
       ),
     );
@@ -283,8 +293,10 @@ class EditProfileView extends GetView<EditProfileController> {
         hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
         filled: true,
         fillColor: const Color(0xFFF9F4EE),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 18,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
@@ -295,14 +307,11 @@ class EditProfileView extends GetView<EditProfileController> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: Color(0xFF8B3A3A), width: 1.8),
+          borderSide: const BorderSide(color: Color(0xFF8B3A3A), width: 1.8),
         ),
         suffixIcon: IconButton(
           icon: Icon(
-            obscure
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
+            obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
             color: Colors.grey[400],
             size: 20,
           ),
@@ -322,8 +331,7 @@ class EditProfileView extends GetView<EditProfileController> {
           onPressed: isLoading ? null : controller.onBatal,
           style: TextButton.styleFrom(
             foregroundColor: const Color(0xFF8B3A3A),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
             textStyle: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -334,37 +342,44 @@ class EditProfileView extends GetView<EditProfileController> {
         const SizedBox(width: 12),
 
         // Konfirmasi
-        SizedBox(
-          height: 48,
-          child: ElevatedButton(
-            onPressed: isLoading ? null : controller.onConfirm,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF7A2828),
-              disabledBackgroundColor: const Color(0xFF7A2828).withOpacity(0.5),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(30),
+        Expanded(
+          child: SizedBox(
+            height: 48,
+            child: ElevatedButton(
+              onPressed: isLoading ? null : controller.onConfirm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7A2828),
+                disabledBackgroundColor: const Color(
+                  0xFF7A2828,
+                ).withOpacity(0.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(30),
+                ),
+                elevation: 0,
+                minimumSize: Size.zero, // override global theme
               ),
-              elevation: 0,
+              child: isLoading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Text(
+                      'Konfirmasi',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
             ),
-            child: isLoading
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: Colors.white,
-                      strokeWidth: 2,
-                    ),
-                  )
-                : const Text(
-                    'Konfirmasi',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
           ),
         ),
       ],
