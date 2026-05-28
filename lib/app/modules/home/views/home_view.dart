@@ -6,7 +6,7 @@ import 'package:get/get_state_manager/src/simple/get_view.dart';
 import 'package:santarana/app/modules/home/controllers/home_controller.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
 import 'package:santarana/shared/models/category_model.dart';
-import 'package:santarana/shared/models/progress_model.dart';
+import 'package:santarana/shared/widgets/user_avatar.dart';
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
@@ -204,26 +204,10 @@ class HomeView extends GetView<HomeController> {
                         size: 32,
                       ),
                       const SizedBox(width: 4),
-                      Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.black87, width: 2),
-                        ),
-                        child: ClipOval(
-                          child: Image.asset(
-                            'assets/images/user.png',
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                const Icon(
-                                  Icons.person,
-                                  color: Color(0xFF8B4789),
-                                  size: 18,
-                                ),
-                          ),
-                        ),
+                      UserAvatar(
+                        size: 32,
+                        borderWidth: 2,
+                        borderColor: Colors.black87,
                       ),
                     ],
                   ),

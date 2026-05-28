@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:santarana/shared/models/user_model.dart';
 import 'package:santarana/shared/services/auth_service.dart';
 
@@ -7,6 +8,11 @@ class AuthController extends GetxService {
 
   final Rx<UserModel?> currentUser = Rx<UserModel?>(null);
 
+  // ── Avatar lokal — reaktif, diakses semua halaman ─────────────────────────
+  final Rxn<String> localAvatarPath = Rxn<String>();
+  static const _prefKeyAvatar = 'local_avatar_path';
+
+  // ── Getters (tidak ada perubahan) ─────────────────────────────────────────
   bool get isLoggedIn => currentUser.value != null;
   String get username => currentUser.value?.username ?? '';
   String get email => currentUser.value?.email ?? '';
@@ -21,12 +27,44 @@ class AuthController extends GetxService {
   int get streak => currentUser.value?.streak ?? 0;
   String? get uid => currentUser.value?.uid;
 
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+  @override
+  void onInit() {
+    super.onInit();
+    _loadLocalAvatar(); // load path foto yang tersimpan saat app dibuka
+  }
+
+  // ── Load avatar dari SharedPreferences ───────────────────────────────────
+  Future<void> _loadLocalAvatar() async {
+    final prefs = await SharedPreferences.getInstance();
+    final saved = prefs.getString(_prefKeyAvatar);
+    if (saved != null && saved.isNotEmpty) {
+      localAvatarPath.value = saved;
+    }
+  }
+
+  // ── Dipanggil EditProfileController setelah user pilih foto ──────────────
+  Future<void> updateLocalAvatar(String filePath) async {
+    localAvatarPath.value = filePath;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefKeyAvatar, filePath);
+  }
+
+  // ── Reset avatar ke default ───────────────────────────────────────────────
+  Future<void> clearLocalAvatar() async {
+    localAvatarPath.value = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_prefKeyAvatar);
+  }
+
+  // ── User management (tidak ada perubahan) ─────────────────────────────────
   void setUser(UserModel user) {
     currentUser.value = user;
   }
 
   void clearUser() {
     currentUser.value = null;
+    localAvatarPath.value = null; // hapus avatar saat logout
   }
 
   Future<void> refreshUser() async {

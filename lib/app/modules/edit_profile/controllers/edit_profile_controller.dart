@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:santarana/shared/controllers/auth_controller.dart';
 
 class EditProfileController extends GetxController {
   // ── Text Controllers ────────────────────────────────────────────────────────
@@ -16,6 +18,9 @@ class EditProfileController extends GetxController {
   // ── Loading state ───────────────────────────────────────────────────────────
   final isLoading = false.obs;
 
+  // ── Image picker ─────────────────────────────────────────────────────────────
+  final _picker = ImagePicker();
+
   // ── Toggle helpers ──────────────────────────────────────────────────────────
   void toggleOld() => obscureOld.value = !obscureOld.value;
   void toggleNew() => obscureNew.value = !obscureNew.value;
@@ -24,9 +29,32 @@ class EditProfileController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // Pre-fill nama dari AuthController jika tersedia
-    // nameController.text = Get.find<AuthController>().username;
-    nameController.text = 'Najwa_Miniww'; // dummy
+    // Pre-fill nama dari AuthController
+    nameController.text = Get.find<AuthController>().username;
+    if (nameController.text.isEmpty) {
+      nameController.text = 'Najwa_Miniww'; // dummy fallback
+    }
+  }
+
+  // ── Pick foto dari galeri ──────────────────────────────────────────────────
+  Future<void> pickImageFromGallery() async {
+    try {
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80, // kompres sedikit agar tidak terlalu besar
+        maxWidth: 512,
+        maxHeight: 512,
+      );
+
+      if (picked == null) return; // user batal memilih
+
+      // Simpan path ke AuthController — semua halaman langsung update
+      await Get.find<AuthController>().updateLocalAvatar(picked.path);
+
+      _showSnackbar('Berhasil', 'Foto profil berhasil diubah', isError: false);
+    } catch (e) {
+      _showSnackbar('Gagal', 'Tidak dapat membuka galeri', isError: true);
+    }
   }
 
   // ── Validasi & Simpan ───────────────────────────────────────────────────────
@@ -36,7 +64,6 @@ class EditProfileController extends GetxController {
     final newPass = newPasswordController.text;
     final confirmPass = confirmPasswordController.text;
 
-    // Validasi nama
     if (name.isEmpty) {
       _showSnackbar('Gagal', 'Nama tidak boleh kosong', isError: true);
       return;
@@ -46,7 +73,6 @@ class EditProfileController extends GetxController {
       return;
     }
 
-    // Validasi password — hanya jika user mengisi salah satu field password
     final isChangingPassword =
         oldPass.isNotEmpty || newPass.isNotEmpty || confirmPass.isNotEmpty;
 
@@ -61,36 +87,43 @@ class EditProfileController extends GetxController {
       }
       if (newPass.length < 6) {
         _showSnackbar(
-            'Peringatan', 'Password baru minimal 6 karakter',
-            isError: true);
+          'Peringatan',
+          'Password baru minimal 6 karakter',
+          isError: true,
+        );
         return;
       }
       if (newPass != confirmPass) {
         _showSnackbar(
-            'Gagal', 'Konfirmasi password tidak cocok',
-            isError: true);
+          'Gagal',
+          'Konfirmasi password tidak cocok',
+          isError: true,
+        );
         return;
       }
       if (oldPass == newPass) {
         _showSnackbar(
-            'Peringatan', 'Password baru tidak boleh sama dengan password lama',
-            isError: true);
+          'Peringatan',
+          'Password baru tidak boleh sama dengan password lama',
+          isError: true,
+        );
         return;
       }
     }
 
-    // Dummy: simulasi loading lalu sukses
     _doSave(name, isChangingPassword);
   }
 
   Future<void> _doSave(String name, bool isChangingPassword) async {
     try {
       isLoading.value = true;
-      // Simulasi network delay
       await Future.delayed(const Duration(milliseconds: 800));
 
       // TODO: ganti dengan pemanggilan service nyata
       // await _authService.updateProfile(name, newPassword);
+
+      // Kembali ke ProfileView dulu, baru snackbar
+      Get.back();
 
       _showSnackbar(
         'Berhasil',
@@ -99,9 +132,6 @@ class EditProfileController extends GetxController {
             : 'Nama berhasil diperbarui',
         isError: false,
       );
-
-      await Future.delayed(const Duration(milliseconds: 600));
-      Get.back();
     } catch (e) {
       _showSnackbar('Error', 'Gagal menyimpan perubahan', isError: true);
     } finally {
@@ -111,8 +141,7 @@ class EditProfileController extends GetxController {
 
   void onBatal() => Get.back();
 
-  void _showSnackbar(String title, String message,
-      {required bool isError}) {
+  void _showSnackbar(String title, String message, {required bool isError}) {
     Get.snackbar(
       title,
       message,

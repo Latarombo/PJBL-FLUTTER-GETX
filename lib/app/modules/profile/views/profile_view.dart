@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:santarana/app/modules/profile/controllers/profile_controller.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
+import 'package:santarana/shared/widgets/user_avatar.dart';
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
@@ -118,34 +119,10 @@ class ProfileView extends GetView<ProfileController> {
             // Avatar — overlap ke bawah header
             Positioned(
               bottom: -50,
-              child: Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 4),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/images/user.png',
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      color: const Color(0xFFFFC4D6),
-                      child: const Icon(
-                        Icons.person,
-                        color: Color(0xFF8B4789),
-                        size: 50,
-                      ),
-                    ),
-                  ),
-                ),
+              child: UserAvatar(
+                size: 100,
+                borderWidth: 4,
+                borderColor: Colors.white,
               ),
             ),
           ],

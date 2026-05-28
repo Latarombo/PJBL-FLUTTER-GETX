@@ -1,210 +1,174 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:santarana/shared/widgets/user_avatar.dart';
 import '../controllers/edit_profile_controller.dart';
 
 class EditProfileView extends GetView<EditProfileController> {
   const EditProfileView({super.key});
+
+  static const _bg = Color(0xFFF9F4E4);
+  static const _cardBg = Colors.white;
+  static const _titleColor = Color(0xFF3D1C10);
+  static const _labelColor = Color(0xFF6B4C3B);
+  static const _accentRed = Color(0xFF7A2828);
+  static const _fieldBg = Color(0xFFF9F4EE);
+  static const _borderIdle = Color(0xFFE8DDD5);
+  static const _borderFocus = Color(0xFF8B3A3A);
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: const Color(0xFFF5EFE6),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(
-              Icons.arrow_back_ios_new_rounded,
-              color: Color(0xFF3D1C10),
-              size: 20,
-            ),
-            onPressed: controller.onBatal,
-          ),
-          title: const Text(
-            'Informasi pribadi',
-            style: TextStyle(
-              color: Color(0xFF3D1C10),
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          centerTitle: true,
-        ),
+        backgroundColor: _bg,
+        appBar: _buildAppBar(),
         body: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Column(
-              children: [
-                // ── Card Utama ─────────────────────────────────────────────
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.06),
-                        blurRadius: 16,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── Avatar ───────────────────────────────────────────
-                      Center(child: _buildAvatar()),
-                      const SizedBox(height: 28),
-
-                      // ── Section: Edit Akun ───────────────────────────────
-                      const Text(
-                        'Edit Akun',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3D1C10),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Nama
-                      _buildLabel('Nama'),
-                      const SizedBox(height: 6),
-                      _buildTextField(
-                        controller: controller.nameController,
-                        hint: 'Masukkan nama',
-                        keyboardType: TextInputType.text,
-                      ),
-                      const SizedBox(height: 24),
-
-                      // ── Section: Ganti Password ──────────────────────────
-                      const Text(
-                        'Ganti Password',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF3D1C10),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Password Lama
-                      _buildLabel('Password lama'),
-                      const SizedBox(height: 6),
-                      Obx(
-                        () => _buildPasswordField(
-                          controller: controller.oldPasswordController,
-                          hint: '••••••••',
-                          obscure: controller.obscureOld.value,
-                          onToggle: controller.toggleOld,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Password Baru
-                      _buildLabel('Password baru'),
-                      const SizedBox(height: 6),
-                      Obx(
-                        () => _buildPasswordField(
-                          controller: controller.newPasswordController,
-                          hint: '••••••••',
-                          obscure: controller.obscureNew.value,
-                          onToggle: controller.toggleNew,
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-
-                      // Konfirmasi Password
-                      _buildLabel('Konfirmasi password'),
-                      const SizedBox(height: 6),
-                      Obx(
-                        () => _buildPasswordField(
-                          controller: controller.confirmPasswordController,
-                          hint: '••••••••',
-                          obscure: controller.obscureConfirm.value,
-                          onToggle: controller.toggleConfirm,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // ── Action Buttons ─────────────────────────────────────────
-                Obx(() => _buildActionButtons(controller.isLoading.value)),
-                const SizedBox(height: 20),
-              ],
-            ),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+            child: _buildMainCard(),
           ),
         ),
       ),
     );
   }
 
-  // ── AVATAR ────────────────────────────────────────────────────────────────
-  Widget _buildAvatar() {
-    return Stack(
-      children: [
-        // Foto profil
-        Container(
-          width: 96,
-          height: 96,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(color: Colors.white, width: 3),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
+  // ── APP BAR ───────────────────────────────────────────────────────────────
+  PreferredSizeWidget _buildAppBar() {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      leading: IconButton(
+        icon: const Icon(
+          Icons.arrow_back_ios_new_rounded,
+          color: _titleColor,
+          size: 20,
+        ),
+        onPressed: controller.onBatal,
+      ),
+      title: const Text(
+        'Informasi pribadi',
+        style: TextStyle(
+          color: _titleColor,
+          fontSize: 17,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        ),
+      ),
+      centerTitle: true,
+    );
+  }
+
+  // ── MAIN CARD ─────────────────────────────────────────────────────────────
+  Widget _buildMainCard() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: _cardBg,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF3D1C10).withOpacity(0.07),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
           ),
-          child: ClipOval(
-            child: Image.asset(
-              'assets/images/user.png',
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                color: const Color(0xFFFFC4D6),
-                child: const Icon(
-                  Icons.person,
-                  color: Color(0xFF8B4789),
-                  size: 48,
-                ),
-              ),
+        ],
+      ),
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Avatar + tombol edit foto ────────────────────────────────
+          Center(child: _buildAvatarWithEditButton()),
+          const SizedBox(height: 28),
+
+          // ── Section: Edit Akun ───────────────────────────────────────
+          _buildSectionTitle('Edit Akun'),
+          const SizedBox(height: 14),
+          _buildLabel('Nama'),
+          const SizedBox(height: 6),
+          _buildTextField(
+            controller: controller.nameController,
+            hint: 'Masukkan nama',
+          ),
+          const SizedBox(height: 24),
+
+          // ── Divider ──────────────────────────────────────────────────
+          Container(height: 1, color: const Color(0xFFF0E8DF)),
+          const SizedBox(height: 22),
+
+          // ── Section: Ganti Password ──────────────────────────────────
+          _buildSectionTitle('Ganti Password'),
+          const SizedBox(height: 14),
+
+          _buildLabel('Password'),
+          const SizedBox(height: 6),
+          Obx(
+            () => _buildPasswordField(
+              ctrl: controller.oldPasswordController,
+              hint: '••••••••',
+              obscure: controller.obscureOld.value,
+              onToggle: controller.toggleOld,
             ),
           ),
-        ),
+          const SizedBox(height: 14),
 
-        // Tombol edit foto — pojok kanan bawah
+          _buildLabel('Password baru'),
+          const SizedBox(height: 6),
+          Obx(
+            () => _buildPasswordField(
+              ctrl: controller.newPasswordController,
+              hint: '••••••••',
+              obscure: controller.obscureNew.value,
+              onToggle: controller.toggleNew,
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          _buildLabel('Konfirmasi password'),
+          const SizedBox(height: 6),
+          Obx(
+            () => _buildPasswordField(
+              ctrl: controller.confirmPasswordController,
+              hint: '••••••••',
+              obscure: controller.obscureConfirm.value,
+              onToggle: controller.toggleConfirm,
+            ),
+          ),
+
+          const SizedBox(height: 28),
+
+          // ── Action Buttons ────────────────────────────────────────────
+          Obx(() => _buildActionButtons(controller.isLoading.value)),
+        ],
+      ),
+    );
+  }
+
+  // ── AVATAR + TOMBOL EDIT FOTO ─────────────────────────────────────────────
+  Widget _buildAvatarWithEditButton() {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        // ── UserAvatar reaktif (dari shared widget) ──────────────────
+        UserAvatar(size: 96, borderWidth: 3, borderColor: Colors.white),
+
+        // ── Tombol edit foto — pojok kanan bawah ─────────────────────
         Positioned(
           bottom: 0,
           right: 0,
           child: GestureDetector(
-            onTap: () {
-              // TODO: image picker
-              Get.snackbar(
-                'Info',
-                'Fitur ganti foto akan segera hadir',
-                snackPosition: SnackPosition.BOTTOM,
-                margin: const EdgeInsets.all(16),
-                borderRadius: 12,
-              );
-            },
+            onTap: controller.pickImageFromGallery,
             child: Container(
               width: 30,
               height: 30,
               decoration: BoxDecoration(
-                color: const Color(0xFF7A2828),
+                color: _accentRed,
                 shape: BoxShape.circle,
                 border: Border.all(color: Colors.white, width: 2),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
+                    color: Colors.black.withOpacity(0.18),
                     blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
@@ -222,6 +186,19 @@ class EditProfileView extends GetView<EditProfileController> {
     );
   }
 
+  // ── SECTION TITLE ─────────────────────────────────────────────────────────
+  Widget _buildSectionTitle(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.bold,
+        color: _titleColor,
+        letterSpacing: 0.1,
+      ),
+    );
+  }
+
   // ── LABEL ─────────────────────────────────────────────────────────────────
   Widget _buildLabel(String text) {
     return Text(
@@ -229,7 +206,7 @@ class EditProfileView extends GetView<EditProfileController> {
       style: const TextStyle(
         fontSize: 13,
         fontWeight: FontWeight.w500,
-        color: Color(0xFF6B4C3B),
+        color: _labelColor,
       ),
     );
   }
@@ -238,36 +215,34 @@ class EditProfileView extends GetView<EditProfileController> {
   Widget _buildTextField({
     required TextEditingController controller,
     required String hint,
-    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
       controller: controller,
-      keyboardType: keyboardType,
       style: const TextStyle(
         fontSize: 14,
-        color: Color(0xFF3D1C10),
+        color: _titleColor,
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+        hintStyle: const TextStyle(color: Color(0xFFBCAFA7), fontSize: 14),
         filled: true,
-        fillColor: const Color(0xFFF9F4EE),
+        fillColor: _fieldBg,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
+          horizontal: 16,
           vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+          borderSide: const BorderSide(color: _borderIdle, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+          borderSide: const BorderSide(color: _borderIdle, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF8B3A3A), width: 1.8),
+          borderSide: const BorderSide(color: _borderFocus, width: 1.8),
         ),
       ),
     );
@@ -275,44 +250,44 @@ class EditProfileView extends GetView<EditProfileController> {
 
   // ── PASSWORD FIELD ────────────────────────────────────────────────────────
   Widget _buildPasswordField({
-    required TextEditingController controller,
+    required TextEditingController ctrl,
     required String hint,
     required bool obscure,
     required VoidCallback onToggle,
   }) {
     return TextField(
-      controller: controller,
+      controller: ctrl,
       obscureText: obscure,
       style: const TextStyle(
         fontSize: 14,
-        color: Color(0xFF3D1C10),
+        color: _titleColor,
         fontWeight: FontWeight.w500,
       ),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+        hintStyle: const TextStyle(color: Color(0xFFBCAFA7), fontSize: 14),
         filled: true,
-        fillColor: const Color(0xFFF9F4EE),
+        fillColor: _fieldBg,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
+          horizontal: 16,
           vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+          borderSide: const BorderSide(color: _borderIdle, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade200, width: 1.5),
+          borderSide: const BorderSide(color: _borderIdle, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF8B3A3A), width: 1.8),
+          borderSide: const BorderSide(color: _borderFocus, width: 1.8),
         ),
         suffixIcon: IconButton(
           icon: Icon(
             obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-            color: Colors.grey[400],
+            color: const Color(0xFFBCAFA7),
             size: 20,
           ),
           onPressed: onToggle,
@@ -326,12 +301,11 @@ class EditProfileView extends GetView<EditProfileController> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        // Batal
         TextButton(
           onPressed: isLoading ? null : controller.onBatal,
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFF8B3A3A),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            foregroundColor: _accentRed,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
             textStyle: const TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -339,47 +313,38 @@ class EditProfileView extends GetView<EditProfileController> {
           ),
           child: const Text('Batal'),
         ),
-        const SizedBox(width: 12),
-
-        // Konfirmasi
-        Expanded(
-          child: SizedBox(
-            height: 48,
-            child: ElevatedButton(
-              onPressed: isLoading ? null : controller.onConfirm,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7A2828),
-                disabledBackgroundColor: const Color(
-                  0xFF7A2828,
-                ).withOpacity(0.5),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 28,
-                  vertical: 12,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                elevation: 0,
-                minimumSize: Size.zero, // override global theme
+        const SizedBox(width: 10),
+        SizedBox(
+          height: 46,
+          child: ElevatedButton(
+            onPressed: isLoading ? null : controller.onConfirm,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _accentRed,
+              disabledBackgroundColor: _accentRed.withOpacity(0.45),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
               ),
-              child: isLoading
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : const Text(
-                      'Konfirmasi',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+              elevation: 0,
+              minimumSize: Size.zero,
             ),
+            child: isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  )
+                : const Text(
+                    'Konfirmasi',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
           ),
         ),
       ],
