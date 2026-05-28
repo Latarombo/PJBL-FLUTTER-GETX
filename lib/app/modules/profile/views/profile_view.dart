@@ -138,8 +138,11 @@ class ProfileView extends GetView<ProfileController> {
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
                       color: const Color(0xFFFFC4D6),
-                      child: const Icon(Icons.person,
-                          color: Color(0xFF8B4789), size: 50),
+                      child: const Icon(
+                        Icons.person,
+                        color: Color(0xFF8B4789),
+                        size: 50,
+                      ),
                     ),
                   ),
                 ),
@@ -173,8 +176,7 @@ class ProfileView extends GetView<ProfileController> {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Obx(() {
             return Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -220,50 +222,6 @@ class ProfileView extends GetView<ProfileController> {
         ),
 
         const SizedBox(height: 24),
-
-        // ── Header "Medali Saya" — tetap fixed ────────────────────────────
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Judul + underline
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Medali Saya',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF270F0F),
-                    ),
-                  ),
-                  Container(
-                    margin: const EdgeInsets.only(top: 3),
-                    height: 3,
-                    width: 90,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFB85C52),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Selesaikan berbagai quiz seru untuk mengumpulkan\nfragmen dan membuka medali spesial!',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                  height: 1.5,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 12),
       ],
     );
   }
@@ -278,7 +236,42 @@ class ProfileView extends GetView<ProfileController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Counter "Dikumpulkan: 0/20 medali"
+          // ── Header "Medali Saya" — PINDAH KE SINI ─────────────────
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Medali Saya',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF270F0F),
+                ),
+              ),
+              Container(
+                margin: const EdgeInsets.only(top: 3),
+                height: 3,
+                width: 90,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFB85C52),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Selesaikan berbagai quiz seru untuk mengumpulkan\nfragmen dan membuka medali spesial!',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.grey[600],
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // ──────────────────────────────────────────────────────────
+
+          // Counter "Dikumpulkan: 0/20 medali" — sudah ada sebelumnya
           RichText(
             text: TextSpan(
               style: const TextStyle(
@@ -308,7 +301,7 @@ class ProfileView extends GetView<ProfileController> {
           ),
           const SizedBox(height: 14),
 
-          // Grid medali — hanya bagian ini yang scroll
+          // Grid medali
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.only(bottom: 100),
@@ -338,9 +331,7 @@ class ProfileView extends GetView<ProfileController> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         // Sedikit background warm agar badge floating
-        color: isUnlocked
-            ? const Color(0xFFFFF3E0)
-            : const Color(0xFFF0EBE0),
+        color: isUnlocked ? const Color(0xFFFFF3E0) : const Color(0xFFF0EBE0),
       ),
       child: Stack(
         alignment: Alignment.center,
@@ -357,10 +348,26 @@ class ProfileView extends GetView<ProfileController> {
                     )
                   // Locked = grayscale
                   : const ColorFilter.matrix(<double>[
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0,      0,      0,      1, 0,
+                      0.2126,
+                      0.7152,
+                      0.0722,
+                      0,
+                      0,
+                      0.2126,
+                      0.7152,
+                      0.0722,
+                      0,
+                      0,
+                      0.2126,
+                      0.7152,
+                      0.0722,
+                      0,
+                      0,
+                      0,
+                      0,
+                      0,
+                      1,
+                      0,
                     ]),
               child: Image.asset(
                 'assets/images/badge_master.png',
@@ -413,9 +420,7 @@ class ProfileView extends GetView<ProfileController> {
                 end: Alignment.bottomRight,
               ),
         border: Border.all(
-          color: isUnlocked
-              ? const Color(0xFFB8860B)
-              : Colors.grey[400]!,
+          color: isUnlocked ? const Color(0xFFB8860B) : Colors.grey[400]!,
           width: 2,
         ),
         boxShadow: isUnlocked
@@ -439,11 +444,8 @@ class ProfileView extends GetView<ProfileController> {
   }
 
   // ── HELPERS ────────────────────────────────────────────────────────────────
-  Widget _buildVerticalDivider() => Container(
-        width: 1,
-        height: 48,
-        color: Colors.grey[300],
-      );
+  Widget _buildVerticalDivider() =>
+      Container(width: 1, height: 48, color: Colors.grey[300]);
 
   Widget _buildStatItem({
     required IconData icon,
