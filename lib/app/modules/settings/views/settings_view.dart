@@ -117,7 +117,7 @@ class SettingsView extends GetView<SettingsController> {
   // ── HEADER (scrollable, SafeArea di dalam) ──────────────────────────────────
   Widget _buildHeader(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-    final headerHeight = (MediaQuery.of(context).size.height * 0.15)
+    final headerHeight = (MediaQuery.of(context).size.height * 0)
         .clamp(180.0, 240.0);
 
     return Container(

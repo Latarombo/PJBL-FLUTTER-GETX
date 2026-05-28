@@ -1,235 +1,449 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
-import 'package:get/get_state_manager/src/simple/get_view.dart';
+import 'package:get/get.dart';
 import 'package:santarana/app/modules/profile/controllers/profile_controller.dart';
+import 'package:santarana/shared/controllers/auth_controller.dart';
 
 class ProfileView extends GetView<ProfileController> {
   const ProfileView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final authController = Get.find<AuthController>();
+
+    // Dummy: 0 dari 20 unlocked. Ubah value jadi true untuk unlock.
+    final List<bool> medalStatus = List.generate(20, (_) => false);
+    final int collected = medalStatus.where((e) => e).length;
+
     return Scaffold(
-      backgroundColor: const Color(0xfff9f4e4),
+      backgroundColor: const Color(0xFFF9F4E4),
       extendBody: true,
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Background Image Section
-            Container(
-              height: 200,
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/bg_profilePage.png'),
-                  fit: BoxFit.cover,
-                ),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.black.withValues(alpha: 0.3),
-                      Colors.black.withValues(alpha: 0.5),
-                    ],
-                  ),
-                ),
-              ),
+      body: Column(
+        children: [
+          // ══════════════════════════════════════════════════════════════════
+          // BAGIAN ATAS — TIDAK SCROLL (fixed)
+          // ══════════════════════════════════════════════════════════════════
+          _buildFixedTop(authController),
+
+          // ══════════════════════════════════════════════════════════════════
+          // BAGIAN BAWAH — HANYA GRID MEDALI YANG SCROLL
+          // ══════════════════════════════════════════════════════════════════
+          Expanded(
+            child: _buildScrollableMedals(
+              medalStatus: medalStatus,
+              collected: collected,
             ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            // White Card Section with Avatar Overlap
-            Transform.translate(
-              offset: const Offset(0, -60),
+  // ── FIXED TOP SECTION ─────────────────────────────────────────────────────
+  Widget _buildFixedTop(AuthController authController) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // ── Header background + avatar ─────────────────────────────────────
+        Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            // Background image dengan rounded bottom
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(28),
+                bottomRight: Radius.circular(28),
+              ),
               child: Stack(
-                clipBehavior: Clip.none,
                 children: [
-                  // Card Background
-                  Container(
-                    padding: const EdgeInsets.only(
-                      top: 80,
-                      bottom: 0,
-                      left: 24,
-                      right: 24,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xfff9f4e4),
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    child: Column(
-                      children: [
-                        // Username
-                        const Text(
-                          'Jhon Doe',
-                          style: TextStyle(
-                            color: Colors.black87,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                  SizedBox(
+                    height: 160,
+                    width: double.infinity,
+                    child: Image.asset(
+                      'assets/images/bg_profilePage.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF8B3A3A), Color(0xFFB85C52)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
                           ),
                         ),
-                        const SizedBox(height: 24),
-
-                        // Stats Card
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 20,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(25),
-                            border: Border.all(
-                              color: const Color(
-                                0xfff8843f,
-                              ).withValues(alpha: 0.3),
-                              width: 2,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildStatItem(
-                                icon: Icons.star,
-                                label: 'POIN',
-                                value: '6370',
-                              ),
-                              Container(
-                                width: 1,
-                                height: 50,
-                                color: Colors.grey[300],
-                              ),
-                              _buildStatItem(
-                                icon: Icons.public,
-                                label: 'PERINGKAT',
-                                value: '3',
-                              ),
-                              Container(
-                                width: 1,
-                                height: 50,
-                                color: Colors.grey[300],
-                              ),
-                              _buildStatItem(
-                                icon: Icons.trending_up,
-                                label: 'PRESENTASE',
-                                value: '87%',
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-
-                        Align(
-                          alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Pengaturan akun',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[400],
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        _buildMenuButton(
-                          title: 'Ganti Nama',
-                          onTap: () =>
-                              controller.showFeatureSnackbar('Ganti Nama'),
-                        ),
-                        const SizedBox(height: 12),
-
-                        _buildMenuButton(
-                          title: 'Ganti Sandi',
-                          onTap: () =>
-                              controller.showFeatureSnackbar('Ganti Sandi'),
-                        ),
-                        const SizedBox(height: 12),
-
-                        _buildMenuButton(
-                          title: 'Ganti Email',
-                          onTap: () =>
-                              controller.showFeatureSnackbar('Ganti Email'),
-                        ),
-                        const SizedBox(height: 12),
-
-                        _buildMenuButton(
-                          title: 'Ajak teman',
-                          onTap: () =>
-                              controller.showFeatureSnackbar('Ajak Teman'),
-                        ),
-                        const SizedBox(height: 12),
-
-                        // Log Out - panggil controller.logout()
-                        _buildMenuButton(
-                          title: 'Log out',
-                          onTap: controller.logout,
-                        ),
-                        const SizedBox(height: 40),
-                      ],
+                      ),
                     ),
                   ),
-
-                  // Avatar positioned to overlap at the top
-                  Positioned(
-                    top: -60,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          image: const DecorationImage(
-                            image: AssetImage('assets/images/user.png'),
-                            fit: BoxFit.cover,
-                          ),
-                          border: Border.all(color: Colors.white, width: 6),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.15),
-                              blurRadius: 15,
-                              offset: const Offset(0, 5),
-                            ),
-                          ],
-                        ),
-                        child: Stack(
-                          children: [
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF2C2C2C),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 3,
-                                  ),
-                                ),
-                                child: const Icon(
-                                  Icons.edit,
-                                  size: 18,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                  // Overlay gelap tipis
+                  Container(
+                    height: 160,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.15),
+                          Colors.black.withOpacity(0.45),
+                        ],
                       ),
                     ),
                   ),
                 ],
               ),
             ),
+
+            // Edit Akun button — pojok kanan atas
+            Positioned(
+              top: MediaQuery.of(Get.context!).padding.top + 10,
+              right: 16,
+              child: GestureDetector(
+                onTap: controller.goToEditAccount,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.edit_outlined, color: Colors.white, size: 14),
+                    SizedBox(width: 4),
+                    Text(
+                      'Edit Akun',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Avatar — overlap ke bawah header
+            Positioned(
+              bottom: -50,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 4),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/images/user.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: const Color(0xFFFFC4D6),
+                      child: const Icon(Icons.person,
+                          color: Color(0xFF8B4789), size: 50),
+                    ),
+                  ),
+                ),
+              ),
+            ),
           ],
+        ),
+
+        // Spacer untuk avatar overlap
+        const SizedBox(height: 60),
+
+        // ── Username ───────────────────────────────────────────────────────
+        Obx(() {
+          final name = authController.username.isNotEmpty
+              ? authController.username
+              : 'User';
+          return Text(
+            name,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF270F0F),
+            ),
+          );
+        }),
+
+        const SizedBox(height: 20),
+
+        // ── Stats Card ─────────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Obx(() {
+            return Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: const Color(0xFFF8843F).withOpacity(0.25),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  _buildStatItem(
+                    icon: Icons.star,
+                    label: 'POIN',
+                    value: '${authController.totalPoints}',
+                  ),
+                  _buildVerticalDivider(),
+                  _buildStatItem(
+                    icon: Icons.public,
+                    label: 'RANGKING',
+                    value: authController.rank > 0
+                        ? '${authController.rank}'
+                        : '1200',
+                  ),
+                  _buildVerticalDivider(),
+                  _buildStatItem(
+                    icon: Icons.trending_up,
+                    label: 'PRESENTASE',
+                    value: authController.correctRate > 0
+                        ? '${authController.correctRate.toStringAsFixed(0)}%'
+                        : '80%',
+                  ),
+                ],
+              ),
+            );
+          }),
+        ),
+
+        const SizedBox(height: 24),
+
+        // ── Header "Medali Saya" — tetap fixed ────────────────────────────
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Judul + underline
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Medali Saya',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF270F0F),
+                    ),
+                  ),
+                  Container(
+                    margin: const EdgeInsets.only(top: 3),
+                    height: 3,
+                    width: 90,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFB85C52),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Selesaikan berbagai quiz seru untuk mengumpulkan\nfragmen dan membuka medali spesial!',
+                style: TextStyle(
+                  fontSize: 12,
+                  color: Colors.grey[600],
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  // ── SCROLLABLE MEDALS ─────────────────────────────────────────────────────
+  Widget _buildScrollableMedals({
+    required List<bool> medalStatus,
+    required int collected,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Counter "Dikumpulkan: 0/20 medali"
+          RichText(
+            text: TextSpan(
+              style: const TextStyle(
+                fontSize: 15,
+                color: Color(0xFF270F0F),
+                fontWeight: FontWeight.w500,
+              ),
+              children: [
+                const TextSpan(text: 'Dikumpulkan: '),
+                TextSpan(
+                  text: '$collected',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFB85C52),
+                    fontSize: 17,
+                  ),
+                ),
+                TextSpan(
+                  text: '/${medalStatus.length} medali',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 17,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Grid medali — hanya bagian ini yang scroll
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.only(bottom: 100),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 3,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 1,
+              ),
+              itemCount: medalStatus.length,
+              itemBuilder: (context, index) {
+                return _buildMedalItem(
+                  index: index,
+                  isUnlocked: medalStatus[index],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── SINGLE MEDAL ITEM ──────────────────────────────────────────────────────
+  Widget _buildMedalItem({required int index, required bool isUnlocked}) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        // Sedikit background warm agar badge floating
+        color: isUnlocked
+            ? const Color(0xFFFFF3E0)
+            : const Color(0xFFF0EBE0),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Badge image
+          Padding(
+            padding: const EdgeInsets.all(6),
+            child: ColorFiltered(
+              colorFilter: isUnlocked
+                  // Unlocked = warna asli
+                  ? const ColorFilter.mode(
+                      Colors.transparent,
+                      BlendMode.saturation,
+                    )
+                  // Locked = grayscale
+                  : const ColorFilter.matrix(<double>[
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0,      0,      0,      1, 0,
+                    ]),
+              child: Image.asset(
+                'assets/images/badge_master.png',
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) =>
+                    _buildFallbackBadge(isUnlocked: isUnlocked),
+              ),
+            ),
+          ),
+
+          // Lock overlay
+          if (!isUnlocked)
+            Positioned(
+              bottom: 6,
+              right: 6,
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.85),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.lock_rounded,
+                  size: 12,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ── FALLBACK BADGE ─────────────────────────────────────────────────────────
+  Widget _buildFallbackBadge({required bool isUnlocked}) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: isUnlocked
+            ? const LinearGradient(
+                colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : LinearGradient(
+                colors: [Colors.grey[400]!, Colors.grey[300]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        border: Border.all(
+          color: isUnlocked
+              ? const Color(0xFFB8860B)
+              : Colors.grey[400]!,
+          width: 2,
+        ),
+        boxShadow: isUnlocked
+            ? [
+                BoxShadow(
+                  color: const Color(0xFFFFD700).withOpacity(0.35),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : [],
+      ),
+      child: Center(
+        child: Icon(
+          isUnlocked ? Icons.military_tech : Icons.lock_rounded,
+          color: isUnlocked ? Colors.white : Colors.grey[500],
+          size: 26,
         ),
       ),
     );
   }
+
+  // ── HELPERS ────────────────────────────────────────────────────────────────
+  Widget _buildVerticalDivider() => Container(
+        width: 1,
+        height: 48,
+        color: Colors.grey[300],
+      );
 
   Widget _buildStatItem({
     required IconData icon,
@@ -239,70 +453,27 @@ class ProfileView extends GetView<ProfileController> {
     return Expanded(
       child: Column(
         children: [
-          Icon(icon, size: 28, color: Colors.black87),
-          const SizedBox(height: 8),
+          Icon(icon, size: 24, color: Colors.black87),
+          const SizedBox(height: 5),
           Text(
             label,
             style: TextStyle(
               fontSize: 10,
-              color: Colors.grey[700],
+              color: Colors.grey[600],
               fontWeight: FontWeight.w600,
-              letterSpacing: 0.5,
+              letterSpacing: 0.4,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 3),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 16,
+              fontSize: 15,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: Color(0xFF270F0F),
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildMenuButton({
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(30),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(30),
-          border: Border.all(
-            color: const Color(0xfff8843f).withValues(alpha: 0.3),
-            width: 2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFFD4A574).withValues(alpha: 0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-            const Icon(Icons.play_arrow, color: Colors.black87, size: 28),
-          ],
-        ),
       ),
     );
   }

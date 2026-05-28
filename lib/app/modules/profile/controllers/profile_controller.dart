@@ -8,6 +8,16 @@ class ProfileController extends GetxController {
   final AuthService _authService = AuthService();
   final AuthController _authController = Get.find<AuthController>();
 
+  // Navigasi ke halaman Edit Account (buat route baru nanti)
+  void goToEditAccount() {
+    // TODO: ganti dengan Routes.EDIT_ACCOUNT saat halaman sudah dibuat
+    Get.snackbar(
+      'Info',
+      'Fitur Edit Akun akan segera hadir',
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  }
+
   void showFeatureSnackbar(String feature) {
     Get.snackbar(
       'Info',
@@ -32,7 +42,7 @@ class ProfileController extends GetxController {
           ),
           TextButton(
             onPressed: () async {
-              Get.back(); // tutup dialog dulu
+              Get.back();
               await _doLogout();
             },
             child: const Text('Keluar', style: TextStyle(color: Colors.red)),
