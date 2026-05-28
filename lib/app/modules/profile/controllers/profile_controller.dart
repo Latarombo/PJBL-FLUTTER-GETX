@@ -10,12 +10,7 @@ class ProfileController extends GetxController {
 
   // Navigasi ke halaman Edit Account (buat route baru nanti)
   void goToEditAccount() {
-    // TODO: ganti dengan Routes.EDIT_ACCOUNT saat halaman sudah dibuat
-    Get.snackbar(
-      'Info',
-      'Fitur Edit Akun akan segera hadir',
-      snackPosition: SnackPosition.BOTTOM,
-    );
+    Get.toNamed(Routes.EDIT_PROFILE);
   }
 
   void showFeatureSnackbar(String feature) {
