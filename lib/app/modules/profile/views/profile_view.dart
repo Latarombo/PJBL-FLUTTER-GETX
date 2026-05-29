@@ -11,7 +11,7 @@ class ProfileView extends GetView<ProfileController> {
   Widget build(BuildContext context) {
     final authController = Get.find<AuthController>();
 
-    // Dummy: 0 dari 20 unlocked. Ubah value jadi true untuk unlock.
+    // Dummy: 0 dari 20 unlocked
     final List<bool> medalStatus = List.generate(20, (_) => false);
     final int collected = medalStatus.where((e) => e).length;
 
@@ -20,14 +20,7 @@ class ProfileView extends GetView<ProfileController> {
       extendBody: true,
       body: Column(
         children: [
-          // ══════════════════════════════════════════════════════════════════
-          // BAGIAN ATAS — TIDAK SCROLL (fixed)
-          // ══════════════════════════════════════════════════════════════════
           _buildFixedTop(authController),
-
-          // ══════════════════════════════════════════════════════════════════
-          // BAGIAN BAWAH — HANYA GRID MEDALI YANG SCROLL
-          // ══════════════════════════════════════════════════════════════════
           Expanded(
             child: _buildScrollableMedals(
               medalStatus: medalStatus,
@@ -49,7 +42,6 @@ class ProfileView extends GetView<ProfileController> {
           clipBehavior: Clip.none,
           alignment: Alignment.bottomCenter,
           children: [
-            // Background image dengan rounded bottom
             ClipRRect(
               borderRadius: const BorderRadius.only(
                 bottomLeft: Radius.circular(28),
@@ -74,7 +66,6 @@ class ProfileView extends GetView<ProfileController> {
                       ),
                     ),
                   ),
-                  // Overlay gelap tipis
                   Container(
                     height: 160,
                     decoration: BoxDecoration(
@@ -92,7 +83,7 @@ class ProfileView extends GetView<ProfileController> {
               ),
             ),
 
-            // Edit Akun button — pojok kanan atas
+            // Edit Akun button
             Positioned(
               top: MediaQuery.of(Get.context!).padding.top + 10,
               right: 16,
@@ -116,7 +107,7 @@ class ProfileView extends GetView<ProfileController> {
               ),
             ),
 
-            // Avatar — overlap ke bawah header
+            // Avatar
             Positioned(
               bottom: -50,
               child: UserAvatar(
@@ -128,10 +119,9 @@ class ProfileView extends GetView<ProfileController> {
           ],
         ),
 
-        // Spacer untuk avatar overlap
         const SizedBox(height: 60),
 
-        // ── Username ───────────────────────────────────────────────────────
+        // ── Username (real-time via Obx) ───────────────────────────────────
         Obx(() {
           final name = authController.username.isNotEmpty
               ? authController.username
@@ -148,54 +138,98 @@ class ProfileView extends GetView<ProfileController> {
 
         const SizedBox(height: 20),
 
-        // ── Stats Card ─────────────────────────────────────────────────────
+        // ── Stats Card (semua real-time via Obx) ───────────────────────────
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Obx(() {
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFFF8843F).withOpacity(0.25),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.06),
-                    blurRadius: 10,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFFF8843F).withOpacity(0.25),
+                width: 1.5,
               ),
-              child: Row(
-                children: [
-                  _buildStatItem(
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.06),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                // ── POIN ──────────────────────────────────────────────────
+                Obx(
+                  () => _buildStatItem(
                     icon: Icons.star,
                     label: 'POIN',
                     value: '${authController.totalPoints}',
                   ),
-                  _buildVerticalDivider(),
-                  _buildStatItem(
+                ),
+                _buildVerticalDivider(),
+
+                // ── RANKING — dengan loading indicator ───────────────────
+                Obx(() {
+                  if (controller.isLoadingRank.value) {
+                    return Expanded(
+                      child: Column(
+                        children: [
+                          const Icon(
+                            Icons.public,
+                            size: 24,
+                            color: Colors.black87,
+                          ),
+                          const SizedBox(height: 5),
+                          Text(
+                            'RANGKING',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFFB85C52),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  final rankVal = authController.rank > 0
+                      ? '#${authController.rank}'
+                      : '-';
+                  return _buildStatItem(
                     icon: Icons.public,
                     label: 'RANGKING',
-                    value: authController.rank > 0
-                        ? '${authController.rank}'
-                        : '1200',
-                  ),
-                  _buildVerticalDivider(),
-                  _buildStatItem(
+                    value: rankVal,
+                  );
+                }),
+                _buildVerticalDivider(),
+
+                // ── PERSENTASE ────────────────────────────────────────────
+                Obx(() {
+                  final rate = authController.correctRate;
+                  final display = rate > 0
+                      ? '${rate.toStringAsFixed(0)}%'
+                      : '0%';
+                  return _buildStatItem(
                     icon: Icons.trending_up,
                     label: 'PRESENTASE',
-                    value: authController.correctRate > 0
-                        ? '${authController.correctRate.toStringAsFixed(0)}%'
-                        : '80%',
-                  ),
-                ],
-              ),
-            );
-          }),
+                    value: display,
+                  );
+                }),
+              ],
+            ),
+          ),
         ),
 
         const SizedBox(height: 24),
@@ -213,7 +247,6 @@ class ProfileView extends GetView<ProfileController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header "Medali Saya" — PINDAH KE SINI ─────────────────
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -246,9 +279,6 @@ class ProfileView extends GetView<ProfileController> {
             ),
           ),
           const SizedBox(height: 12),
-          // ──────────────────────────────────────────────────────────
-
-          // Counter "Dikumpulkan: 0/20 medali" — sudah ada sebelumnya
           RichText(
             text: TextSpan(
               style: const TextStyle(
@@ -277,8 +307,6 @@ class ProfileView extends GetView<ProfileController> {
             ),
           ),
           const SizedBox(height: 14),
-
-          // Grid medali
           Expanded(
             child: GridView.builder(
               padding: const EdgeInsets.only(bottom: 100),
@@ -289,12 +317,8 @@ class ProfileView extends GetView<ProfileController> {
                 childAspectRatio: 1,
               ),
               itemCount: medalStatus.length,
-              itemBuilder: (context, index) {
-                return _buildMedalItem(
-                  index: index,
-                  isUnlocked: medalStatus[index],
-                );
-              },
+              itemBuilder: (context, index) =>
+                  _buildMedalItem(index: index, isUnlocked: medalStatus[index]),
             ),
           ),
         ],
@@ -307,23 +331,19 @@ class ProfileView extends GetView<ProfileController> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
-        // Sedikit background warm agar badge floating
         color: isUnlocked ? const Color(0xFFFFF3E0) : const Color(0xFFF0EBE0),
       ),
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Badge image
           Padding(
             padding: const EdgeInsets.all(6),
             child: ColorFiltered(
               colorFilter: isUnlocked
-                  // Unlocked = warna asli
                   ? const ColorFilter.mode(
                       Colors.transparent,
                       BlendMode.saturation,
                     )
-                  // Locked = grayscale
                   : const ColorFilter.matrix(<double>[
                       0.2126,
                       0.7152,
@@ -354,8 +374,6 @@ class ProfileView extends GetView<ProfileController> {
               ),
             ),
           ),
-
-          // Lock overlay
           if (!isUnlocked)
             Positioned(
               bottom: 6,
@@ -378,7 +396,6 @@ class ProfileView extends GetView<ProfileController> {
     );
   }
 
-  // ── FALLBACK BADGE ─────────────────────────────────────────────────────────
   Widget _buildFallbackBadge({required bool isUnlocked}) {
     return Container(
       width: double.infinity,
@@ -400,15 +417,6 @@ class ProfileView extends GetView<ProfileController> {
           color: isUnlocked ? const Color(0xFFB8860B) : Colors.grey[400]!,
           width: 2,
         ),
-        boxShadow: isUnlocked
-            ? [
-                BoxShadow(
-                  color: const Color(0xFFFFD700).withOpacity(0.35),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ]
-            : [],
       ),
       child: Center(
         child: Icon(

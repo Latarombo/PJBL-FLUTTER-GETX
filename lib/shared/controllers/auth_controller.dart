@@ -12,7 +12,7 @@ class AuthController extends GetxService {
   final Rxn<String> localAvatarPath = Rxn<String>();
   static const _prefKeyAvatar = 'local_avatar_path';
 
-  // ── Getters (tidak ada perubahan) ─────────────────────────────────────────
+  // ── Getters ───────────────────────────────────────────────────────────────
   bool get isLoggedIn => currentUser.value != null;
   String get username => currentUser.value?.username ?? '';
   String get email => currentUser.value?.email ?? '';
@@ -31,7 +31,7 @@ class AuthController extends GetxService {
   @override
   void onInit() {
     super.onInit();
-    _loadLocalAvatar(); // load path foto yang tersimpan saat app dibuka
+    _loadLocalAvatar();
   }
 
   // ── Load avatar dari SharedPreferences ───────────────────────────────────
@@ -43,30 +43,36 @@ class AuthController extends GetxService {
     }
   }
 
-  // ── Dipanggil EditProfileController setelah user pilih foto ──────────────
+  // ── Update avatar lokal ───────────────────────────────────────────────────
   Future<void> updateLocalAvatar(String filePath) async {
     localAvatarPath.value = filePath;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefKeyAvatar, filePath);
   }
 
-  // ── Reset avatar ke default ───────────────────────────────────────────────
+  // ── Reset avatar ──────────────────────────────────────────────────────────
   Future<void> clearLocalAvatar() async {
     localAvatarPath.value = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_prefKeyAvatar);
   }
 
-  // ── User management (tidak ada perubahan) ─────────────────────────────────
+  // ── User management ───────────────────────────────────────────────────────
   void setUser(UserModel user) {
     currentUser.value = user;
   }
 
   void clearUser() {
     currentUser.value = null;
-    localAvatarPath.value = null; // hapus avatar saat logout
+    localAvatarPath.value = null;
   }
 
+  /// Refresh data user dari Firestore.
+  ///
+  /// Dipanggil oleh:
+  /// - QuizController setelah selesai quiz (update poin)
+  /// - EditProfileController setelah update username/password
+  /// - ProfileController saat tab profile dibuka (update rank)
   Future<void> refreshUser() async {
     final uid = currentUser.value?.uid;
     if (uid == null) return;
