@@ -8,6 +8,8 @@ import '../modules/email_verification/bindings/email_verification_binding.dart';
 import '../modules/email_verification/views/email_verification_view.dart';
 import '../modules/forgot_password/bindings/forgot_password_binding.dart';
 import '../modules/forgot_password/views/forgot_password_view.dart';
+import '../modules/kategori_kuis/bindings/kategori_kuis_binding.dart';
+import '../modules/kategori_kuis/views/kategori_kuis_view.dart';
 import '../modules/password_recovery_success/bindings/password_recovery_success_binding.dart';
 import '../modules/password_recovery_success/views/password_recovery_success_view.dart';
 import '../modules/quiz/bindings/quiz_binding.dart';
@@ -74,6 +76,11 @@ class AppPages {
       name: _Paths.EDIT_PROFILE,
       page: () => const EditProfileView(),
       binding: EditProfileBinding(),
+    ),
+    GetPage(
+      name: _Paths.KATEGORI_KUIS,
+      page: () => const KategoriKuisView(),
+      binding: KategoriKuisBinding(),
     ),
   ];
 }

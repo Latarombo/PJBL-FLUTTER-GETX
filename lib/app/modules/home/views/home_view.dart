@@ -661,7 +661,6 @@ class HomeView extends GetView<HomeController> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Ikon kalender dari asset
               Image.asset(
                 'assets/images/logo_mascot2.png',
                 width: 36,
@@ -681,11 +680,9 @@ class HomeView extends GetView<HomeController> {
                 ),
               ),
               const SizedBox(width: 10),
-              // Teks dengan rectangle merah sebagai underline
               Stack(
                 clipBehavior: Clip.none,
                 children: [
-                  // Rectangle merah — sedikit lebih lebar dari teks, offset ke bawah
                   Positioned(
                     bottom: -2,
                     left: 0,
@@ -698,7 +695,6 @@ class HomeView extends GetView<HomeController> {
                       ),
                     ),
                   ),
-                  // Teks di atas rectangle
                   const Text(
                     'Misi Eksplor Harian',
                     style: TextStyle(
@@ -738,7 +734,7 @@ class HomeView extends GetView<HomeController> {
           ),
           const SizedBox(height: 16),
 
-          // ── Grid misi regular (01–06) ──────────────────────────────
+          // ── Grid misi ─────────────────────────────────────────────
           _buildMissionGrid(),
         ],
       ),
@@ -756,7 +752,6 @@ class HomeView extends GetView<HomeController> {
 
     return Column(
       children: [
-        // Grid 2 kolom: misi 01-06
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -769,7 +764,6 @@ class HomeView extends GetView<HomeController> {
           itemCount: regularMissions.length,
           itemBuilder: (_, i) => _buildMissionCard(regularMissions[i]),
         ),
-        // Misi 07: full width special
         if (specialMission != null) ...[
           const SizedBox(height: 14),
           _buildSpecialMissionCard(specialMission),
@@ -783,12 +777,11 @@ class HomeView extends GetView<HomeController> {
     final isInProgress = mission.status == _MissionStatus.inProgress;
     final isLocked = mission.status == _MissionStatus.locked;
 
-    // Warna angka: emas untuk aktif/selesai, abu untuk locked
+    // Warna angka: emas untuk completed/inProgress, abu untuk locked
     final numberColor = (isCompleted || isInProgress)
         ? const Color(0xFFB8860B)
         : const Color(0xFFCCCCCC);
 
-    // Warna stroke kedua layer: coklat tua
     const strokeColor = Color(0xFF3D1C10);
 
     return GestureDetector(
@@ -806,7 +799,7 @@ class HomeView extends GetView<HomeController> {
               ),
             ),
           ),
-          // ── Layer 2 (dalam): stroke 1, gap ~8px dari layer 1 ──────
+          // ── Layer 2 (dalam): gap ~8px dari layer 1 ────────────────
           Positioned(
             top: 8,
             left: 8,
@@ -826,28 +819,28 @@ class HomeView extends GetView<HomeController> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // ── Baris atas: Nomor + ikon kanan atas ───────────
+                  // ── Baris atas: Nomor + icon api (hanya completed) ─
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Angka misi — Inter ExtraBold, letter spacing 8%
+                      // Angka misi
                       Text(
                         mission.number.toString().padLeft(2, '0'),
                         style: TextStyle(
                           fontFamily: 'Inter',
                           fontSize: 36,
                           fontWeight: FontWeight.w800,
-                          letterSpacing: 36 * 0.08, // 8% dari fontSize
+                          letterSpacing: 36 * 0.08,
                           color: numberColor,
                           height: 1.0,
                         ),
                       ),
-                      // Ikon kanan atas (api untuk completed, ? untuk inProgress, kunci untuk locked)
+                      // Icon kanan atas: api untuk completed, kosong untuk lainnya
                       _buildTopRightIcon(mission),
                     ],
                   ),
-                  // ── Baris bawah: label kesulitan + ikon status bawah ──
+                  // ── Baris bawah: label + icon status ──────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.center,
@@ -862,7 +855,7 @@ class HomeView extends GetView<HomeController> {
                               : const Color(0xFF714F4C),
                         ),
                       ),
-                      // Ikon bawah kanan: centang untuk completed, kunci untuk locked
+                      // Icon kanan bawah: centang / tanda tanya / gembok
                       _buildBottomRightIcon(mission),
                     ],
                   ),
@@ -875,11 +868,13 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  // ── Ikon pojok kanan ATAS card (api / tanda tanya) ────────────────────────
+  // ── Icon pojok kanan ATAS ─────────────────────────────────────────────────
+  // completed  → icon api (orange/pink bergantian)
+  // inProgress → kosong (tidak ada icon di atas)
+  // locked     → kosong
   Widget _buildTopRightIcon(_DailyMission mission) {
     switch (mission.status) {
       case _MissionStatus.completed:
-        // Api — asset berbeda tiap misi (oranye untuk ganjil, pink untuk genap)
         final assetPath = mission.number.isOdd
             ? 'assets/images/icon_fire_orange.png'
             : 'assets/images/icon_fire_pink.png';
@@ -896,26 +891,17 @@ class HomeView extends GetView<HomeController> {
           ),
         );
       case _MissionStatus.inProgress:
-        // Tanda tanya — asset
-        return Image.asset(
-          'assets/images/icon_question.png',
-          width: 26,
-          height: 26,
-          errorBuilder: (_, __, ___) => const Text(
-            '?',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFFCC3333),
-            ),
-          ),
-        );
+      case _MissionStatus.locked:
       default:
+        // Tidak ada icon di pojok kanan atas untuk inProgress dan locked
         return const SizedBox(width: 26, height: 26);
     }
   }
 
-  // ── Ikon pojok kanan BAWAH card (centang / kunci) ─────────────────────────
+  // ── Icon pojok kanan BAWAH ────────────────────────────────────────────────
+  // completed  → icon centang (icon_check.png)
+  // inProgress → icon tanda tanya (icon_question.png)
+  // locked     → icon gembok (icon_lock.png)
   Widget _buildBottomRightIcon(_DailyMission mission) {
     switch (mission.status) {
       case _MissionStatus.completed:
@@ -938,8 +924,20 @@ class HomeView extends GetView<HomeController> {
           ),
         );
       case _MissionStatus.inProgress:
-        // inProgress tidak ada ikon bawah kanan
-        return const SizedBox(width: 30, height: 30);
+        // Tanda tanya di bawah kanan — sesuai Figma card 03
+        return Image.asset(
+          'assets/images/icon_question.png',
+          width: 30,
+          height: 30,
+          errorBuilder: (_, __, ___) => const Text(
+            '?',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFFCC3333),
+            ),
+          ),
+        );
       case _MissionStatus.locked:
       default:
         return Image.asset(
@@ -952,12 +950,12 @@ class HomeView extends GetView<HomeController> {
     }
   }
 
-  // ── (Tidak dipakai lagi, diganti _buildTopRightIcon/_buildBottomRightIcon) ─
+  // ── (tidak dipakai, dipertahankan agar tidak breaking) ───────────────────
   Widget _buildStatusIcon(_MissionStatus status) {
     return const SizedBox.shrink();
   }
 
-  // ── Misi 07 — Full width dengan background image (double-layer) ──────────────────────────────
+  // ── Misi 07 — Full width special ─────────────────────────────────────────
   Widget _buildSpecialMissionCard(_DailyMission mission) {
     const strokeColor = Color(0xFF3D1C10);
 
@@ -965,7 +963,7 @@ class HomeView extends GetView<HomeController> {
       onTap: () => _onMissionTap(mission),
       child: Stack(
         children: [
-          // ── Layer 1 (terluar): stroke 2.5 ───────────────────────────────────────────────────
+          // ── Layer 1 (terluar) ─────────────────────────────────────
           Container(
             height: 140,
             decoration: BoxDecoration(
@@ -976,7 +974,7 @@ class HomeView extends GetView<HomeController> {
               ),
             ),
           ),
-          // ── Layer 2 (dalam): background image + content ───────────────────────────────
+          // ── Layer 2 (dalam): background image + content ───────────
           Positioned(
             top: 8,
             left: 8,
@@ -1001,7 +999,7 @@ class HomeView extends GetView<HomeController> {
                       color: Colors.grey.withValues(alpha: 0.55),
                     ),
                   ),
-                  // Overlay gelap agar teks terbaca
+                  // Overlay gelap
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
@@ -1016,7 +1014,7 @@ class HomeView extends GetView<HomeController> {
                       ),
                     ),
                   ),
-                  // Border layer 2: stroke 1
+                  // Border layer 2
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
@@ -1074,7 +1072,7 @@ class HomeView extends GetView<HomeController> {
                             color: Colors.white.withValues(alpha: 0.15),
                           ),
                         ),
-                        // Kanan: ikon kunci dari asset
+                        // Kanan: icon gembok dari asset
                         Image.asset(
                           'assets/images/icon_lock.png',
                           width: 34,
