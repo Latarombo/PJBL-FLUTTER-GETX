@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_instance/src/extension_instance.dart';
+import 'package:get/get_navigation/src/extension_navigation.dart';
+import 'package:get/get_navigation/src/snackbar/snackbar.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:get/get_state_manager/src/simple/get_view.dart';
 import 'package:santarana/app/modules/home/controllers/home_controller.dart';
@@ -8,8 +10,62 @@ import 'package:santarana/shared/controllers/auth_controller.dart';
 import 'package:santarana/shared/models/category_model.dart';
 import 'package:santarana/shared/widgets/user_avatar.dart';
 
+// ── Model dummy untuk Misi Eksplor Harian ─────────────────────────────────────
+class _DailyMission {
+  final int number;
+  final String difficulty;
+  final _MissionStatus status;
+
+  const _DailyMission({
+    required this.number,
+    required this.difficulty,
+    required this.status,
+  });
+}
+
+enum _MissionStatus { completed, inProgress, locked, special }
+
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
+
+  // ── Dummy data Misi Eksplor Harian ─────────────────────────────────────────
+  static const List<_DailyMission> _missions = [
+    _DailyMission(
+      number: 1,
+      difficulty: 'Mudah',
+      status: _MissionStatus.completed,
+    ),
+    _DailyMission(
+      number: 2,
+      difficulty: 'Mudah',
+      status: _MissionStatus.completed,
+    ),
+    _DailyMission(
+      number: 3,
+      difficulty: 'Mudah',
+      status: _MissionStatus.inProgress,
+    ),
+    _DailyMission(
+      number: 4,
+      difficulty: 'Mudah',
+      status: _MissionStatus.locked,
+    ),
+    _DailyMission(
+      number: 5,
+      difficulty: 'Mudah',
+      status: _MissionStatus.locked,
+    ),
+    _DailyMission(
+      number: 6,
+      difficulty: 'Mudah',
+      status: _MissionStatus.locked,
+    ),
+    _DailyMission(
+      number: 7,
+      difficulty: 'Mudah',
+      status: _MissionStatus.special,
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -25,26 +81,13 @@ class HomeView extends GetView<HomeController> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Header dengan username & totalPoints dinamis ────────
+                  // ── 1. HEADER ──────────────────────────────────────
                   _buildHeader(authController),
+
+                  // Space untuk card Aktivitas Terakhir yang overlap
                   const SizedBox(height: 80),
 
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 24),
-                    child: Text(
-                      'Ayo! selesaikan kuis terbaru kami dapatkan poin tambahan dari kuis ini',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xff714f4c),
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildFeaturedGameCard(),
-                  const SizedBox(height: 24),
-
+                  // ── 2. KATEGORI GAME ───────────────────────────────
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
@@ -57,14 +100,38 @@ class HomeView extends GetView<HomeController> {
                     ),
                   ),
                   const SizedBox(height: 12),
-
-                  // ── Kategori DINAMIS dari Firestore ─────────────────────
                   _buildGameCategories(),
+
+                  const SizedBox(height: 20),
+
+                  // ── 3. TEKS PROMO ──────────────────────────────────
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 24),
+                    child: Text(
+                      'Ayo! Selesaikan kuis terbaru kami dapatkan point tambahan dari tantangan harian',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xff714f4c),
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── 4. FEATURED GAME CARD ──────────────────────────
+                  _buildFeaturedGameCard(),
+
+                  const SizedBox(height: 28),
+
+                  // ── 5. MISI EKSPLOR HARIAN ─────────────────────────
+                  _buildMisiEksplorHarian(),
+
                   const SizedBox(height: 100),
                 ],
               ),
 
-              // ── Character mascot ───────────────────────────────────────
+              // ── Karakter maskot (overlap di header) ───────────────
               Positioned(
                 top: 88,
                 right: 40,
@@ -80,7 +147,7 @@ class HomeView extends GetView<HomeController> {
                 ),
               ),
 
-              // ── Aktivitas Terakhir Card — DINAMIS dari Firestore ───────
+              // ── Aktivitas Terakhir Card (overlap ke bawah header) ─
               Positioned(
                 top: 220,
                 left: 0,
@@ -156,7 +223,6 @@ class HomeView extends GetView<HomeController> {
                         ),
                       ],
                     ),
-                    // Username DINAMIS dari AuthController
                     Obx(() {
                       final name = authController.username;
                       return Stack(
@@ -216,7 +282,7 @@ class HomeView extends GetView<HomeController> {
             ),
             const SizedBox(height: 21),
 
-            // Total Poin DINAMIS — update langsung setelah quiz selesai
+            // Total Poin
             Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -276,12 +342,10 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  // ── AKTIVITAS TERAKHIR — DINAMIS dari user_progress ──────────────────────
+  // ── AKTIVITAS TERAKHIR ────────────────────────────────────────────────────
   Widget _buildAktivitasTerakhirCard() {
     return Obx(() {
       final last = controller.lastActivity.value;
-
-      // Belum pernah main → sembunyikan card
       if (last == null) return const SizedBox.shrink();
 
       return GestureDetector(
@@ -303,13 +367,12 @@ class HomeView extends GetView<HomeController> {
             ),
             child: Row(
               children: [
-                // Gambar kategori
                 Container(
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    color: const Color(0xFF5A8B7E), // fallback
+                    color: const Color(0xFF5A8B7E),
                     image: last.imagePath.isNotEmpty
                         ? DecorationImage(
                             image: AssetImage(last.imagePath),
@@ -343,20 +406,17 @@ class HomeView extends GetView<HomeController> {
                         ],
                       ),
                       const SizedBox(height: 4),
-                      // Nama kategori
                       Text(
                         last.categoryName,
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      // Skor terakhir
                       Text(
                         'Skor terakhir: ${last.lastScore}%  •  ${last.attempts}x main',
                         style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 6),
-                      // Progress bar
                       Row(
                         children: [
                           Expanded(
@@ -513,7 +573,7 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  // ── KATEGORI GAME — DINAMIS dari Firestore ────────────────────────────────
+  // ── KATEGORI GAME ─────────────────────────────────────────────────────────
   Widget _buildGameCategories() {
     return SizedBox(
       height: 100,
@@ -545,7 +605,6 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  // ── CATEGORY CARD ─────────────────────────────────────────────────────────
   Widget _buildCategoryCard(CategoryModel category) {
     return GestureDetector(
       onTap: () => controller.goToQuiz(category.name),
@@ -589,5 +648,581 @@ class HomeView extends GetView<HomeController> {
         ),
       ),
     );
+  }
+
+  // ── MISI EKSPLOR HARIAN ───────────────────────────────────────────────────
+  Widget _buildMisiEksplorHarian() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Judul section ──────────────────────────────────────────
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Ikon kalender dari asset
+              Image.asset(
+                'assets/images/logo_mascot2.png',
+                width: 36,
+                height: 36,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5A623),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.calendar_month_rounded,
+                    color: Colors.white,
+                    size: 22,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Teks dengan rectangle merah sebagai underline
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  // Rectangle merah — sedikit lebih lebar dari teks, offset ke bawah
+                  Positioned(
+                    bottom: -2,
+                    left: 0,
+                    right: 0,
+                    child: Container(
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFB85C52).withValues(alpha: 0.55),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
+                  // Teks di atas rectangle
+                  const Text(
+                    'Misi Eksplor Harian',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF3D1C10),
+                      letterSpacing: 0.2,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // ── Sub-teks hadiah medali ─────────────────────────────────
+          Row(
+            children: [
+              const Text(
+                'Selesaikan misi dan dapatkan medali:',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF714F4C),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Image.asset(
+                'assets/images/badge_master.png',
+                width: 28,
+                height: 28,
+                errorBuilder: (_, __, ___) =>
+                    const Text('🏅', style: TextStyle(fontSize: 20)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // ── Grid misi regular (01–06) ──────────────────────────────
+          _buildMissionGrid(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMissionGrid() {
+    final regularMissions = _missions
+        .where((m) => m.status != _MissionStatus.special)
+        .toList();
+    final specialMission = _missions.cast<_DailyMission?>().firstWhere(
+      (m) => m?.status == _MissionStatus.special,
+      orElse: () => null,
+    );
+
+    return Column(
+      children: [
+        // Grid 2 kolom: misi 01-06
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            crossAxisSpacing: 14,
+            mainAxisSpacing: 14,
+            childAspectRatio: 1.15,
+          ),
+          itemCount: regularMissions.length,
+          itemBuilder: (_, i) => _buildMissionCard(regularMissions[i]),
+        ),
+        // Misi 07: full width special
+        if (specialMission != null) ...[
+          const SizedBox(height: 14),
+          _buildSpecialMissionCard(specialMission),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMissionCard(_DailyMission mission) {
+    final isCompleted = mission.status == _MissionStatus.completed;
+    final isInProgress = mission.status == _MissionStatus.inProgress;
+    final isLocked = mission.status == _MissionStatus.locked;
+
+    // Warna angka: emas untuk aktif/selesai, abu untuk locked
+    final numberColor = (isCompleted || isInProgress)
+        ? const Color(0xFFB8860B)
+        : const Color(0xFFCCCCCC);
+
+    // Warna stroke kedua layer: coklat tua
+    const strokeColor = Color(0xFF3D1C10);
+
+    return GestureDetector(
+      onTap: () => _onMissionTap(mission),
+      child: Stack(
+        children: [
+          // ── Layer 1 (terluar): stroke 2.5, radius lebih besar ─────
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: strokeColor.withValues(alpha: isLocked ? 0.25 : 0.75),
+                width: 2.5,
+              ),
+            ),
+          ),
+          // ── Layer 2 (dalam): stroke 1, gap ~8px dari layer 1 ──────
+          Positioned(
+            top: 8,
+            left: 8,
+            right: 8,
+            bottom: 8,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: strokeColor.withValues(alpha: isLocked ? 0.20 : 0.60),
+                  width: 1.0,
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // ── Baris atas: Nomor + ikon kanan atas ───────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Angka misi — Inter ExtraBold, letter spacing 8%
+                      Text(
+                        mission.number.toString().padLeft(2, '0'),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 36,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 36 * 0.08, // 8% dari fontSize
+                          color: numberColor,
+                          height: 1.0,
+                        ),
+                      ),
+                      // Ikon kanan atas (api untuk completed, ? untuk inProgress, kunci untuk locked)
+                      _buildTopRightIcon(mission),
+                    ],
+                  ),
+                  // ── Baris bawah: label kesulitan + ikon status bawah ──
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        mission.difficulty,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: isLocked
+                              ? Colors.grey[400]
+                              : const Color(0xFF714F4C),
+                        ),
+                      ),
+                      // Ikon bawah kanan: centang untuk completed, kunci untuk locked
+                      _buildBottomRightIcon(mission),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Ikon pojok kanan ATAS card (api / tanda tanya) ────────────────────────
+  Widget _buildTopRightIcon(_DailyMission mission) {
+    switch (mission.status) {
+      case _MissionStatus.completed:
+        // Api — asset berbeda tiap misi (oranye untuk ganjil, pink untuk genap)
+        final assetPath = mission.number.isOdd
+            ? 'assets/images/icon_fire_orange.png'
+            : 'assets/images/icon_fire_pink.png';
+        return Image.asset(
+          assetPath,
+          width: 26,
+          height: 26,
+          errorBuilder: (_, __, ___) => Icon(
+            Icons.local_fire_department_rounded,
+            size: 26,
+            color: mission.number.isOdd
+                ? const Color(0xFFFF6B00)
+                : const Color(0xFFFF69B4),
+          ),
+        );
+      case _MissionStatus.inProgress:
+        // Tanda tanya — asset
+        return Image.asset(
+          'assets/images/icon_question.png',
+          width: 26,
+          height: 26,
+          errorBuilder: (_, __, ___) => const Text(
+            '?',
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFFCC3333),
+            ),
+          ),
+        );
+      default:
+        return const SizedBox(width: 26, height: 26);
+    }
+  }
+
+  // ── Ikon pojok kanan BAWAH card (centang / kunci) ─────────────────────────
+  Widget _buildBottomRightIcon(_DailyMission mission) {
+    switch (mission.status) {
+      case _MissionStatus.completed:
+        return Image.asset(
+          'assets/images/icon_check.png',
+          width: 30,
+          height: 30,
+          errorBuilder: (_, __, ___) => Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFF2E7D32), width: 2),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              color: Color(0xFF2E7D32),
+              size: 20,
+            ),
+          ),
+        );
+      case _MissionStatus.inProgress:
+        // inProgress tidak ada ikon bawah kanan
+        return const SizedBox(width: 30, height: 30);
+      case _MissionStatus.locked:
+      default:
+        return Image.asset(
+          'assets/images/icon_lock.png',
+          width: 26,
+          height: 26,
+          errorBuilder: (_, __, ___) =>
+              Icon(Icons.lock_rounded, size: 22, color: Colors.grey[500]),
+        );
+    }
+  }
+
+  // ── (Tidak dipakai lagi, diganti _buildTopRightIcon/_buildBottomRightIcon) ─
+  Widget _buildStatusIcon(_MissionStatus status) {
+    return const SizedBox.shrink();
+  }
+
+  // ── Misi 07 — Full width dengan background image (double-layer) ──────────────────────────────
+  Widget _buildSpecialMissionCard(_DailyMission mission) {
+    const strokeColor = Color(0xFF3D1C10);
+
+    return GestureDetector(
+      onTap: () => _onMissionTap(mission),
+      child: Stack(
+        children: [
+          // ── Layer 1 (terluar): stroke 2.5 ───────────────────────────────────────────────────
+          Container(
+            height: 140,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: strokeColor.withValues(alpha: 0.45),
+                width: 2.5,
+              ),
+            ),
+          ),
+          // ── Layer 2 (dalam): background image + content ───────────────────────────────
+          Positioned(
+            top: 8,
+            left: 8,
+            right: 8,
+            bottom: 8,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                children: [
+                  // Background image
+                  Positioned.fill(
+                    child: Image.asset(
+                      'assets/images/bg_home_header.png',
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          Container(color: const Color(0xFF5A5A5A)),
+                    ),
+                  ),
+                  // Grayscale overlay
+                  Positioned.fill(
+                    child: Container(
+                      color: Colors.grey.withValues(alpha: 0.55),
+                    ),
+                  ),
+                  // Overlay gelap agar teks terbaca
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.45),
+                            Colors.black.withValues(alpha: 0.15),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Border layer 2: stroke 1
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: strokeColor.withValues(alpha: 0.35),
+                          width: 1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Kiri: angka 07 + label
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '07',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 40,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 40 * 0.08,
+                                color: Colors.white.withValues(alpha: 0.55),
+                                height: 1.0,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              mission.difficulty,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.white.withValues(alpha: 0.75),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        // Tengah: tanda tanya besar dekoratif
+                        Text(
+                          '?',
+                          style: TextStyle(
+                            fontSize: 72,
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white.withValues(alpha: 0.15),
+                          ),
+                        ),
+                        // Kanan: ikon kunci dari asset
+                        Image.asset(
+                          'assets/images/icon_lock.png',
+                          width: 34,
+                          height: 34,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 34,
+                            height: 34,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.3),
+                                width: 1.5,
+                              ),
+                            ),
+                            child: Icon(
+                              Icons.lock_rounded,
+                              color: Colors.white.withValues(alpha: 0.8),
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Handler tap misi ──────────────────────────────────────────────────────
+  void _onMissionTap(_DailyMission mission) {
+    switch (mission.status) {
+      case _MissionStatus.completed:
+        Get.snackbar(
+          '✅ Misi ${mission.number.toString().padLeft(2, '0')} Selesai',
+          'Kamu sudah menyelesaikan misi ini. Bagus sekali!',
+          backgroundColor: const Color(0xFF2E7D32),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 14,
+          duration: const Duration(seconds: 2),
+        );
+        break;
+
+      case _MissionStatus.inProgress:
+        Get.dialog(
+          Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            backgroundColor: const Color(0xFFFFF8E7),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFF3E0),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.explore_rounded,
+                      color: Color(0xFFE65100),
+                      size: 34,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Misi ${mission.number.toString().padLeft(2, '0')}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF3D1C10),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Misi ini sedang berlangsung.\nLanjutkan untuk mendapatkan medali!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Color(0xFF714F4C),
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () => Get.back(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8B3A3A),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: const Text(
+                        'Lanjutkan Misi',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        break;
+
+      case _MissionStatus.locked:
+        Get.snackbar(
+          '🔒 Misi Terkunci',
+          'Selesaikan misi sebelumnya terlebih dahulu!',
+          backgroundColor: const Color(0xFF8B3A3A),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 14,
+          duration: const Duration(seconds: 2),
+        );
+        break;
+
+      case _MissionStatus.special:
+        Get.snackbar(
+          '🔒 Misi Spesial Terkunci',
+          'Selesaikan semua misi harian untuk membuka misi spesial ini!',
+          backgroundColor: const Color(0xFF3D1C10),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 14,
+          duration: const Duration(seconds: 3),
+        );
+        break;
+    }
   }
 }
