@@ -1,11 +1,14 @@
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_navigation/src/snackbar/snackbar.dart';
-import 'package:get/get_rx/src/rx_types/rx_types.dart';
-import 'package:get/get_state_manager/src/simple/get_controllers.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+import 'package:santarana/app/routes/app_pages.dart';
+import 'package:santarana/shared/controllers/auth_controller.dart';
+import 'package:santarana/shared/services/auth_service.dart';
 
 class SettingsController extends GetxController {
-  // Toggle states — sesuai foto: Music, Efek Suara, Getar Ponsel
+  final AuthService _authService = AuthService();
+  final AuthController _authController = Get.find<AuthController>();
+
+  // Toggle states — Music, Efek Suara, Getar Ponsel
   final music = true.obs;
   final efekSuara = true.obs;
   final getarPonsel = false.obs;
@@ -29,8 +32,44 @@ class SettingsController extends GetxController {
   void onTentangKami() => showComingSoon('Tentang Kami');
 
   void onLogOut() {
-    // Navigasi ke halaman logout / trigger logout dari sini
-    // Bisa diganti dengan logika logout sesuai kebutuhan
-    showComingSoon('Log Out');
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Konfirmasi'),
+        content: const Text('Apakah Anda yakin ingin keluar akun?'),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text(
+              'Batal',
+              style: TextStyle(color: Color(0xFF9E9E9E)),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Get.back();
+              await _doLogout();
+            },
+            child: const Text('Keluar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _doLogout() async {
+    try {
+      await _authService.signOut();
+      _authController.clearUser();
+      Get.offAllNamed(Routes.SIGN_IN);
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Gagal logout, coba lagi',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 }
