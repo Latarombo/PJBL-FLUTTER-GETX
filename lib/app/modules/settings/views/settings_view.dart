@@ -18,7 +18,7 @@ class SettingsView extends GetView<SettingsController> {
       backgroundColor: _cream,
       // extendBodyBehindAppBar agar konten bisa scroll bebas
       body: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
+        physics: const ClampingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
