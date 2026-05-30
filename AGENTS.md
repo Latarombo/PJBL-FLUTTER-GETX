@@ -59,7 +59,7 @@ daily_mission_templates/{templateId}
   "difficulty": "Sedang",
   "mission_number": 3,
   "unlock_hour": 8,
-  "reward_points": 20,
+  "reward_points": 200,
   "is_special": false,
   "is_active": true,
   "image_path": "assets/images/senjata_adat_tradisional.png",
