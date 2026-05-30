@@ -8,10 +8,7 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
   // ── Warna ────────────────────────────────────────────────────────────────
   static const _bg = Color(0xFFF9F4E4);
   static const _strokeDark = Color(0xFF3D1C10);
-  static const _gold = Color(0xFFB8860B);
-  static const _grey = Color(0xFFCCCCCC);
   static const _brownText = Color(0xFF714F4C);
-  static const _redDark = Color(0xFF8B3A3A);
 
   @override
   Widget build(BuildContext context) {
@@ -383,7 +380,6 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
         );
 
       case KuisMissionStatus.locked:
-      default:
         return ColorFiltered(
           colorFilter: ColorFilter.mode(Colors.grey.shade500, BlendMode.srcIn),
           child: Image.asset(

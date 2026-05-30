@@ -1,78 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:get/get_instance/src/extension_instance.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_navigation/src/snackbar/snackbar.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:get/get_state_manager/src/simple/get_view.dart';
 import 'package:santarana/app/app_shell.dart';
+import 'package:santarana/app/modules/daily_mission/controller/daily_mission_controller.dart';
 import 'package:santarana/app/modules/home/controllers/home_controller.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
 import 'package:santarana/shared/models/category_model.dart';
+import 'package:santarana/shared/models/daily_mission_model.dart';
 import 'package:santarana/shared/widgets/user_avatar.dart';
-
-// ── Model dummy untuk Misi Eksplor Harian ─────────────────────────────────────
-class _DailyMission {
-  final int number;
-  final String difficulty;
-  final _MissionStatus status;
-  final String? imagePath;
-
-  const _DailyMission({
-    required this.number,
-    required this.difficulty,
-    required this.status,
-    this.imagePath,
-  });
-}
-
-enum _MissionStatus { completed, inProgress, locked, special }
 
 class HomeView extends GetView<HomeController> {
   const HomeView({super.key});
-
-  // ── Dummy data Misi Eksplor Harian ─────────────────────────────────────────
-  static const List<_DailyMission> _missions = [
-    _DailyMission(
-      number: 1,
-      difficulty: 'Mudah',
-      status: _MissionStatus.completed,
-      imagePath: 'assets/images/musik_nusantara.png',
-    ),
-    _DailyMission(
-      number: 2,
-      difficulty: 'Mudah',
-      status: _MissionStatus.completed,
-    ),
-    _DailyMission(
-      number: 3,
-      difficulty: 'Sedang',
-      status: _MissionStatus.inProgress,
-    ),
-    _DailyMission(
-      number: 4,
-      difficulty: 'Sedang',
-      status: _MissionStatus.locked,
-      imagePath: 'assets/images/tarian_adat.png',
-    ),
-    _DailyMission(
-      number: 5,
-      difficulty: 'Sulit',
-      status: _MissionStatus.locked,
-      imagePath: 'assets/images/makanan_nusantara.png',
-    ),
-    _DailyMission(
-      number: 6,
-      difficulty: 'Sulit',
-      status: _MissionStatus.locked,
-    ),
-    _DailyMission(
-      number: 7,
-      difficulty: 'Sangat Sulit',
-      status: _MissionStatus.special,
-      imagePath: 'assets/images/senjata_adat_tradisional.png',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -256,7 +196,6 @@ class HomeView extends GetView<HomeController> {
                     }),
                   ],
                 ),
-                // Notifikasi + Avatar
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 8,
@@ -291,7 +230,6 @@ class HomeView extends GetView<HomeController> {
             ),
             const SizedBox(height: 21),
 
-            // Total Poin
             Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -356,7 +294,6 @@ class HomeView extends GetView<HomeController> {
     return Obx(() {
       final last = controller.lastActivity.value;
 
-      // ── PLACEHOLDER: belum ada aktivitas ─────────────────────────────────
       if (last == null) {
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -375,7 +312,6 @@ class HomeView extends GetView<HomeController> {
             ),
             child: Row(
               children: [
-                // ── Ikon placeholder ─────────────────────────────────────
                 Container(
                   width: 80,
                   height: 80,
@@ -390,8 +326,6 @@ class HomeView extends GetView<HomeController> {
                   ),
                 ),
                 const SizedBox(width: 16),
-
-                // ── Teks + tombol ─────────────────────────────────────────
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -458,7 +392,6 @@ class HomeView extends GetView<HomeController> {
         );
       }
 
-      // ── NORMAL: ada aktivitas terakhir ────────────────────────────────────
       return GestureDetector(
         onTap: () => controller.goToKategori(last.categoryName),
         child: Padding(
@@ -753,7 +686,6 @@ class HomeView extends GetView<HomeController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // ── Judul section ──────────────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -791,7 +723,6 @@ class HomeView extends GetView<HomeController> {
           ),
           const SizedBox(height: 12),
 
-          // ── Sub-teks hadiah medali ─────────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -813,56 +744,91 @@ class HomeView extends GetView<HomeController> {
           ),
           const SizedBox(height: 16),
 
-          // ── Grid misi ─────────────────────────────────────────────
+          // ── Grid misi dari DailyMissionController ─────────────────
           _buildMissionGrid(),
         ],
       ),
     );
   }
 
+  // ── MISSION GRID — membaca dari DailyMissionController ───────────────────
   Widget _buildMissionGrid() {
-    final regularMissions = _missions
-        .where((m) => m.status != _MissionStatus.special)
-        .toList();
-    final specialMission = _missions.cast<_DailyMission?>().firstWhere(
-      (m) => m?.status == _MissionStatus.special,
-      orElse: () => null,
-    );
+    final missionCtrl = Get.find<DailyMissionController>();
 
-    return Column(
-      children: [
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio: 1.15,
+    return Obx(() {
+      if (missionCtrl.isLoading.value) {
+        return const Center(
+          child: CircularProgressIndicator(color: Color(0xFFFFB347)),
+        );
+      }
+
+      final items = missionCtrl.missionsWithStatus;
+
+      if (items.isEmpty) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              'Misi hari ini belum tersedia.\nCoba lagi nanti.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Color(0xFF714F4C)),
+            ),
           ),
-          itemCount: regularMissions.length,
-          itemBuilder: (_, i) => _buildMissionCard(regularMissions[i]),
-        ),
-        if (specialMission != null) ...[
-          const SizedBox(height: 14),
-          _buildSpecialMissionCard(specialMission),
+        );
+      }
+
+      final regular = items.where((m) => !m.slot.isSpecial).toList();
+      final special = items.cast<MissionSlotWithStatus?>().firstWhere(
+        (m) => m?.slot.isSpecial == true,
+        orElse: () => null,
+      );
+
+      return Column(
+        children: [
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 14,
+              mainAxisSpacing: 14,
+              childAspectRatio: 1.15,
+            ),
+            itemCount: regular.length,
+            itemBuilder: (_, i) => _buildMissionCard(
+              regular[i],
+              onTap: () => missionCtrl.onMissionTap(regular[i]),
+            ),
+          ),
+          if (special != null) ...[
+            const SizedBox(height: 14),
+            _buildSpecialMissionCard(
+              special,
+              onTap: () => missionCtrl.onMissionTap(special),
+            ),
+          ],
         ],
-      ],
-    );
+      );
+    });
   }
 
-  Widget _buildMissionCard(_DailyMission mission) {
-    final isCompleted = mission.status == _MissionStatus.completed;
-    final isInProgress = mission.status == _MissionStatus.inProgress;
-    final isLocked = mission.status == _MissionStatus.locked;
+  // ── MISSION CARD ──────────────────────────────────────────────────────────
+  Widget _buildMissionCard(
+    MissionSlotWithStatus item, {
+    required VoidCallback onTap,
+  }) {
+    final isCompleted = item.status == DailyMissionStatus.completed;
+    final isInProgress = item.status == DailyMissionStatus.inProgress;
+    final isLocked = item.status == DailyMissionStatus.locked;
+    final isExpired = item.status == DailyMissionStatus.expired;
+    final hasImage = item.slot.imagePath != null;
 
     const strokeColor = Color(0xFF3D1C10);
 
     return GestureDetector(
-      onTap: () => _onMissionTap(mission),
+      onTap: onTap,
       child: Stack(
         children: [
-          // ── Layer 1 (terluar): stroke 2.5, radius lebih besar ─────
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
@@ -870,7 +836,6 @@ class HomeView extends GetView<HomeController> {
               border: Border.all(color: strokeColor, width: 2.5),
             ),
           ),
-          // ── Layer 2 (dalam): gap ~8px dari layer 1 ────────────────
           Positioned(
             top: 8,
             left: 8,
@@ -881,11 +846,9 @@ class HomeView extends GetView<HomeController> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // ── Background: gambar (jika ada) atau putih biasa ──
-                  if (mission.imagePath != null)
+                  if (hasImage)
                     ColorFiltered(
-                      // locked → greyscale, lainnya → normal
-                      colorFilter: mission.status == _MissionStatus.locked
+                      colorFilter: (isLocked || isExpired)
                           ? const ColorFilter.matrix(<double>[
                               0.2126,
                               0.7152,
@@ -913,27 +876,22 @@ class HomeView extends GetView<HomeController> {
                               BlendMode.color,
                             ),
                       child: Image.asset(
-                        mission.imagePath!,
+                        item.slot.imagePath!,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) =>
                             Container(color: Colors.white),
                       ),
                     )
                   else
-                    // Tidak ada gambar → putih biasa
                     Container(color: Colors.white),
 
-                  // ── Overlay gelap di atas gambar ────────────────────
-                  if (mission.imagePath != null)
+                  if (hasImage)
                     Container(
                       color: Colors.black.withValues(
-                        alpha: mission.status == _MissionStatus.locked
-                            ? 0.25 // locked: sedikit gelap
-                            : 0.30, // completed: gelap agar teks terbaca
+                        alpha: (isLocked || isExpired) ? 0.25 : 0.30,
                       ),
                     ),
 
-                  // ── Konten card (border + padding + teks) ───────────
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
@@ -947,12 +905,14 @@ class HomeView extends GetView<HomeController> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.start,
                       children: [
-                        // Baris atas: Nomor
-                        // SESUDAH
+                        // Nomor misi
                         Stack(
                           children: [
                             Text(
-                              mission.number.toString().padLeft(2, '0'),
+                              item.slot.missionNumber.toString().padLeft(
+                                2,
+                                '0',
+                              ),
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 36,
@@ -967,49 +927,43 @@ class HomeView extends GetView<HomeController> {
                               ),
                             ),
                             Text(
-                              mission.number.toString().padLeft(2, '0'),
+                              item.slot.missionNumber.toString().padLeft(
+                                2,
+                                '0',
+                              ),
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 36,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 36 * 0.08,
                                 color: (isCompleted || isInProgress)
-                                    ? const Color(
-                                        0xFFFFD700,
-                                      ) // emas untuk aktif/selesai
-                                    : mission.imagePath != null
-                                    ? const Color(0xFFFFFFFF)
-                                    : const Color(
-                                        0xFFCCCCCC,
-                                      ), // abu jika locked+tanpa gambar
+                                    ? const Color(0xFFFFD700)
+                                    : hasImage
+                                    ? Colors.white
+                                    : const Color(0xFFCCCCCC),
                                 height: 1.0,
                               ),
                             ),
                           ],
                         ),
                         const Spacer(),
-                        // Baris bawah: label difficulty + icon status
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              mission.difficulty,
+                              item.slot.difficulty,
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                // jika ada gambar → putih, jika tidak → warna normal
-                                color: mission.imagePath != null
+                                color: hasImage
                                     ? Colors.white
-                                    : (isLocked
-                                          ? Colors.grey[600]
-                                          : const Color(0xFF714F4C)),
+                                    : (isLocked || isExpired)
+                                    ? Colors.grey[600]
+                                    : const Color(0xFF714F4C),
                               ),
                             ),
-                            _buildBottomRightIcon(
-                              mission,
-                              hasImage: mission.imagePath != null,
-                            ),
+                            _buildStatusIcon(item, hasImage: hasImage),
                           ],
                         ),
                       ],
@@ -1024,29 +978,22 @@ class HomeView extends GetView<HomeController> {
     );
   }
 
-  // ── Icon pojok kanan BAWAH ────────────────────────────────────────────────
-  // completed  → icon centang (icon_check.png)
-  // inProgress → icon tanda tanya (icon_question.png)
-  // locked     → icon gembok (icon_lock.png)
-  Widget _buildBottomRightIcon(_DailyMission mission, {bool hasImage = false}) {
-    // Warna border kotak sesuai status
-    // SESUDAH
+  // ── STATUS ICON ───────────────────────────────────────────────────────────
+  Widget _buildStatusIcon(MissionSlotWithStatus item, {bool hasImage = false}) {
     final boxBorderColor =
-        (mission.status == _MissionStatus.locked ||
-            mission.status == _MissionStatus.special)
+        (item.status == DailyMissionStatus.locked ||
+            item.status == DailyMissionStatus.expired)
         ? (hasImage ? Colors.white : Colors.grey.shade500)
-        : const Color(0xFF3D1C10); // coklat untuk completed & inProgress
+        : const Color(0xFF3D1C10);
 
-    // Wrapper kotak transparan dengan border rounded
     Widget withBox(Widget child) {
       return SizedBox(
         width: 36,
         height: 36,
         child: Stack(
-          clipBehavior: Clip.none, // ← izinkan overflow
+          clipBehavior: Clip.none,
           alignment: Alignment.center,
           children: [
-            // Kotak border
             Container(
               width: 36,
               height: 36,
@@ -1056,30 +1003,25 @@ class HomeView extends GetView<HomeController> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            // Icon lebih besar dari kotak agar overflow
-            Positioned(
-              right: -5, // ← geser ke kanan bawah seperti di Figma
-              bottom: 8,
-              child: child,
-            ),
+            Positioned(right: -5, bottom: 8, child: child),
           ],
         ),
       );
     }
 
-    switch (mission.status) {
-      case _MissionStatus.completed:
+    switch (item.status) {
+      case DailyMissionStatus.completed:
         return withBox(
           Image.asset(
             'assets/images/icon_check.png',
             width: 42,
             height: 42,
             errorBuilder: (_, __, ___) =>
-                Icon(Icons.check, size: 20, color: const Color(0xFF2E7D32)),
+                const Icon(Icons.check, size: 20, color: Color(0xFF2E7D32)),
           ),
         );
 
-      case _MissionStatus.inProgress:
+      case DailyMissionStatus.inProgress:
         return withBox(
           Image.asset(
             'assets/images/icon_question.png',
@@ -1096,8 +1038,8 @@ class HomeView extends GetView<HomeController> {
           ),
         );
 
-      case _MissionStatus.locked:
-      default:
+      case DailyMissionStatus.expired:
+      case DailyMissionStatus.locked:
         return ColorFiltered(
           colorFilter: ColorFilter.mode(
             hasImage ? Colors.white : Colors.grey.shade500,
@@ -1117,20 +1059,20 @@ class HomeView extends GetView<HomeController> {
     }
   }
 
-  // ── (tidak dipakai, dipertahankan agar tidak breaking) ───────────────────
-  Widget _buildStatusIcon(_MissionStatus status) {
-    return const SizedBox.shrink();
-  }
-
-  // ── Misi 07 — Full width special ─────────────────────────────────────────
-  Widget _buildSpecialMissionCard(_DailyMission mission) {
+  // ── SPECIAL MISSION CARD ──────────────────────────────────────────────────
+  Widget _buildSpecialMissionCard(
+    MissionSlotWithStatus item, {
+    required VoidCallback onTap,
+  }) {
+    final isCompleted = item.status == DailyMissionStatus.completed;
+    final isInProgress = item.status == DailyMissionStatus.inProgress;
+    final hasImage = item.slot.imagePath != null;
     const strokeColor = Color(0xFF3D1C10);
 
     return GestureDetector(
-      onTap: () => _onMissionTap(mission),
+      onTap: onTap,
       child: Stack(
         children: [
-          // ── Layer 1 (terluar): border tipis seperti locked card ───
           Container(
             height: 160,
             decoration: BoxDecoration(
@@ -1139,7 +1081,6 @@ class HomeView extends GetView<HomeController> {
               border: Border.all(color: strokeColor, width: 2.5),
             ),
           ),
-          // ── Layer 2 (dalam): card putih dengan gap 8px ────────────
           Positioned(
             top: 8,
             left: 8,
@@ -1150,42 +1091,48 @@ class HomeView extends GetView<HomeController> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  // ── Background gambar dengan greyscale ──────────────
-                  ColorFiltered(
-                    colorFilter: const ColorFilter.matrix(<double>[
-                      0.2126,
-                      0.7152,
-                      0.0722,
-                      0,
-                      0,
-                      0.2126,
-                      0.7152,
-                      0.0722,
-                      0,
-                      0,
-                      0.2126,
-                      0.7152,
-                      0.0722,
-                      0,
-                      0,
-                      0,
-                      0,
-                      0,
-                      1,
-                      0,
-                    ]),
-                    child: Image.asset(
-                      mission.imagePath!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          Container(color: Colors.white),
-                    ),
-                  ),
+                  // Background
+                  if (hasImage)
+                    ColorFiltered(
+                      colorFilter: (isCompleted || isInProgress)
+                          ? const ColorFilter.mode(
+                              Colors.transparent,
+                              BlendMode.color,
+                            )
+                          : const ColorFilter.matrix(<double>[
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              1,
+                              0,
+                            ]),
+                      child: Image.asset(
+                        item.slot.imagePath!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Container(color: Colors.white),
+                      ),
+                    )
+                  else
+                    Container(color: Colors.white),
 
-                  // ── Overlay gelap ────────────────────────────────────
                   Container(color: Colors.black.withValues(alpha: 0.25)),
 
-                  // ── Konten: border + teks ────────────────────────────
                   Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
@@ -1202,7 +1149,10 @@ class HomeView extends GetView<HomeController> {
                         Stack(
                           children: [
                             Text(
-                              '07',
+                              item.slot.missionNumber.toString().padLeft(
+                                2,
+                                '0',
+                              ),
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 42,
@@ -1216,15 +1166,19 @@ class HomeView extends GetView<HomeController> {
                                   ..color = const Color(0xFF383838),
                               ),
                             ),
-                            const Text(
-                              '07',
+                            Text(
+                              item.slot.missionNumber.toString().padLeft(
+                                2,
+                                '0',
+                              ),
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 42,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 36 * 0.08,
-                                color:
-                                    Colors.white, // ← putih karena ada gambar
+                                color: (isCompleted || isInProgress)
+                                    ? const Color(0xFFFFD700)
+                                    : Colors.white,
                                 height: 1.0,
                               ),
                             ),
@@ -1236,24 +1190,14 @@ class HomeView extends GetView<HomeController> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              mission.difficulty,
+                              item.slot.difficulty,
                               style: const TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w500,
-                                color:
-                                    Colors.white, // ← putih karena ada gambar
+                                color: Colors.white,
                               ),
                             ),
-                            Image.asset(
-                              'assets/images/icon_lock.png',
-                              width: 26,
-                              height: 26,
-                              errorBuilder: (_, __, ___) => Icon(
-                                Icons.lock_rounded,
-                                size: 36,
-                                color: Colors.grey[300],
-                              ),
-                            ),
+                            _buildStatusIcon(item, hasImage: true),
                           ],
                         ),
                       ],
@@ -1266,122 +1210,5 @@ class HomeView extends GetView<HomeController> {
         ],
       ),
     );
-  }
-
-  // ── Handler tap misi ──────────────────────────────────────────────────────
-  void _onMissionTap(_DailyMission mission) {
-    switch (mission.status) {
-      case _MissionStatus.completed:
-        Get.snackbar(
-          '✅ Misi ${mission.number.toString().padLeft(2, '0')} Selesai',
-          'Kamu sudah menyelesaikan misi ini. Bagus sekali!',
-          backgroundColor: const Color(0xFF2E7D32),
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 14,
-          duration: const Duration(seconds: 2),
-        );
-        break;
-
-      case _MissionStatus.inProgress:
-        Get.dialog(
-          Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            backgroundColor: const Color(0xFFFFF8E7),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFFF3E0),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.explore_rounded,
-                      color: Color(0xFFE65100),
-                      size: 34,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Misi ${mission.number.toString().padLeft(2, '0')}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF3D1C10),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Misi ini sedang berlangsung.\nLanjutkan untuk mendapatkan medali!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Color(0xFF714F4C),
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Get.back(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8B3A3A),
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Lanjutkan Misi',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-        break;
-
-      case _MissionStatus.locked:
-        Get.snackbar(
-          '🔒 Misi Terkunci',
-          'Selesaikan misi sebelumnya terlebih dahulu!',
-          backgroundColor: const Color(0xFF8B3A3A),
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 14,
-          duration: const Duration(seconds: 2),
-        );
-        break;
-
-      case _MissionStatus.special:
-        Get.snackbar(
-          '🔒 Misi Spesial Terkunci',
-          'Selesaikan semua misi harian untuk membuka misi spesial ini!',
-          backgroundColor: const Color(0xFF3D1C10),
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 14,
-          duration: const Duration(seconds: 3),
-        );
-        break;
-    }
   }
 }
