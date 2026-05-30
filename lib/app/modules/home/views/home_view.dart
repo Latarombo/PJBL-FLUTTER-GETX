@@ -406,7 +406,7 @@ class HomeView extends GetView<HomeController> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Belum ada aktivitas,\nmulai bermain!',
+                        'Anda belum mempunyai aktivitas,\nAyo mulai bermain!',
                         style: TextStyle(
                           fontSize: 12,
                           color: Colors.grey[600],
@@ -414,33 +414,37 @@ class HomeView extends GetView<HomeController> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      SizedBox(
-                        height: 30,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // Scroll ke section kategori atau ambil kategori pertama
-                            if (controller.categories.isNotEmpty) {
-                              controller.goToKategori(
-                                controller.categories.first.name,
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF8B3A3A),
-                            padding: const EdgeInsets.symmetric(horizontal: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: SizedBox(
+                          height: 30,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (controller.categories.isNotEmpty) {
+                                controller.goToKategori(
+                                  controller.categories.first.name,
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF8B3A3A),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              elevation: 0,
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            elevation: 0,
-                            minimumSize: Size.zero,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          child: const Text(
-                            'Mulai Main',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                            child: const Text(
+                              'Mulai Main',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
                         ),
@@ -852,7 +856,7 @@ class HomeView extends GetView<HomeController> {
 
     // Warna angka: emas untuk completed/inProgress, abu untuk locked
     final numberColor = (isCompleted || isInProgress)
-        ? const Color(0xFFB8860B)
+        ? const Color(0xFFFFD700)
         : const Color(0xFFCCCCCC);
 
     const strokeColor = Color(0xFF3D1C10);
@@ -947,45 +951,38 @@ class HomeView extends GetView<HomeController> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Baris atas: Nomor + icon api
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        // Baris atas: Nomor
+                        // SESUDAH
+                        Stack(
                           children: [
-                            Stack(
-                              children: [
-                                Text(
-                                  mission.number.toString().padLeft(2, '0'),
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 36 * 0.08,
-                                    height: 1.0,
-                                    foreground: Paint()
-                                      ..style = PaintingStyle.stroke
-                                      ..strokeWidth = 2.5
-                                      ..strokeJoin = StrokeJoin.round
-                                      ..color = const Color(0xFF383838),
-                                  ),
-                                ),
-                                Text(
-                                  mission.number.toString().padLeft(2, '0'),
-                                  style: TextStyle(
-                                    fontFamily: 'Inter',
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: 36 * 0.08,
-                                    // jika ada gambar → putih agar kontras
-                                    color: mission.imagePath != null
-                                        ? Colors.white
-                                        : numberColor,
-                                    height: 1.0,
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              mission.number.toString().padLeft(2, '0'),
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 36,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 36 * 0.08,
+                                height: 1.0,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 2.5
+                                  ..strokeJoin = StrokeJoin.round
+                                  ..color = const Color(0xFF383838),
+                              ),
                             ),
-                            _buildTopRightIcon(mission),
+                            Text(
+                              mission.number.toString().padLeft(2, '0'),
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 36,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 36 * 0.08,
+                                color: mission.imagePath != null
+                                    ? const Color(0xFFFFF8E7)
+                                    : numberColor,
+                                height: 1.0,
+                              ),
+                            ),
                           ],
                         ),
                         // Baris bawah: label difficulty + icon status
@@ -1002,7 +999,7 @@ class HomeView extends GetView<HomeController> {
                                 color: mission.imagePath != null
                                     ? Colors.white
                                     : (isLocked
-                                          ? Colors.grey[400]
+                                          ? Colors.grey[600]
                                           : const Color(0xFF714F4C)),
                               ),
                             ),
@@ -1022,35 +1019,6 @@ class HomeView extends GetView<HomeController> {
         ],
       ),
     );
-  }
-
-  // ── Icon pojok kanan ATAS ─────────────────────────────────────────────────
-  // completed  → icon api (orange/pink bergantian)
-  // inProgress → kosong (tidak ada icon di atas)
-  // locked     → kosong
-  Widget _buildTopRightIcon(_DailyMission mission) {
-    switch (mission.status) {
-      case _MissionStatus.completed:
-        final assetPath = mission.number.isOdd
-            ? 'assets/images/icon_fire_orange.png'
-            : 'assets/images/icon_fire_pink.png';
-        return Image.asset(
-          assetPath,
-          width: 26,
-          height: 26,
-          errorBuilder: (_, __, ___) => Icon(
-            Icons.local_fire_department_rounded,
-            size: 26,
-            color: mission.number.isOdd
-                ? const Color(0xFFFF6B00)
-                : const Color(0xFFFF69B4),
-          ),
-        );
-      case _MissionStatus.inProgress:
-      case _MissionStatus.locked:
-      default:
-        return const SizedBox(width: 26, height: 26);
-    }
   }
 
   // ── Icon pojok kanan BAWAH ────────────────────────────────────────────────
@@ -1128,10 +1096,7 @@ class HomeView extends GetView<HomeController> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: strokeColor,
-                width: 2.5,
-              ),
+              border: Border.all(color: strokeColor, width: 2.5),
             ),
           ),
           // ── Layer 2 (dalam): card putih dengan gap 8px ────────────
