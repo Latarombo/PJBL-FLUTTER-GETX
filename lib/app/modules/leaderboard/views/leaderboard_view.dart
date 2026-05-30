@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:get/get_state_manager/src/simple/get_view.dart';
@@ -15,39 +13,31 @@ class LeaderboardView extends GetView<LeaderboardController> {
       backgroundColor: const Color(0xFFF9F4E4),
       body: Stack(
         children: [
-          // ── Background image (menggantikan CustomPaint painter) ──────
+          // ── Background image ──────────────────────────────────────────────
           Positioned.fill(
             child: Image.asset(
               'assets/images/bg_leaderboard.png',
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) {
-                // Fallback ke gradient lama jika aset belum ada
-                return CustomPaint(painter: LeaderboardBackgroundPainter());
-              },
             ),
           ),
 
+          // ── Konten utama: Column dengan podium fixed + list scrollable ───
           SafeArea(
             child: Column(
               children: [
+                // ── 1. Header (fixed) ────────────────────────────────────
                 _buildHeader(),
-                Expanded(
-                  child: SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 20),
-                        _buildPodium(),
-                        const SizedBox(height: 30),
-                        _buildLeaderboardList(),
-                        const SizedBox(height: 80),
-                      ],
-                    ),
-                  ),
-                ),
+
+                // ── 2. Podium (fixed, tidak ikut scroll) ─────────────────
+                _buildPodium(),
+
+                // ── 3. List leaderboard (hanya bagian ini yang scroll) ───
+                Expanded(child: _buildLeaderboardList()),
               ],
             ),
           ),
+
+          // ── Card user saat ini (fixed di bawah) ──────────────────────────
           Positioned(
             left: 0,
             right: 0,
@@ -59,6 +49,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
+  // ── HEADER ─────────────────────────────────────────────────────────────────
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -99,6 +90,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
+  // ── PODIUM (fixed, tidak bisa di-scroll) ───────────────────────────────────
   Widget _buildPodium() {
     return SizedBox(
       height: 340,
@@ -329,23 +321,27 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
+  // ── LIST LEADERBOARD (hanya bagian ini yang bisa di-scroll) ───────────────
   Widget _buildLeaderboardList() {
     return Obx(() {
       if (controller.isLoading.value) {
-        return const Padding(
-          padding: EdgeInsets.all(32),
-          child: Center(
-            child: CircularProgressIndicator(color: Color(0xFFFFB347)),
-          ),
+        return const Center(
+          child: CircularProgressIndicator(color: Color(0xFFFFB347)),
         );
       }
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          children: controller.leaderboardData
-              .map((entry) => _buildLeaderboardCard(entry))
-              .toList(),
-        ),
+
+      if (controller.leaderboardData.isEmpty) {
+        return const Center(
+          child: Text('Belum ada data', style: TextStyle(color: Colors.grey)),
+        );
+      }
+
+      return ListView.builder(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 80),
+        physics: const BouncingScrollPhysics(),
+        itemCount: controller.leaderboardData.length,
+        itemBuilder: (_, i) =>
+            _buildLeaderboardCard(controller.leaderboardData[i]),
       );
     });
   }
@@ -457,6 +453,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
+  // ── CARD USER SAAT INI (fixed di bawah) ───────────────────────────────────
   Widget _buildCurrentUserCard() {
     return Obx(() {
       final userEntry = controller.currentUserEntry;
@@ -541,59 +538,4 @@ class LeaderboardView extends GetView<LeaderboardController> {
       );
     });
   }
-}
-
-// Fallback painter — tetap dipertahankan jika aset belum ada
-class LeaderboardBackgroundPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final gradient = const LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [Color(0xFFF9F4E4), Color(0xFFFFE8D6), Color(0xffd2947b)],
-    );
-
-    final paint = Paint()
-      ..shader = gradient.createShader(
-        Rect.fromLTWH(0, 0, size.width, size.height),
-      );
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
-
-    final sprinklePaint = Paint()..style = PaintingStyle.fill;
-    final random = math.Random(42);
-
-    for (int i = 0; i < 100; i++) {
-      final x = random.nextDouble() * size.width;
-      final y = random.nextDouble() * size.height;
-      final starSize = 3.0 + random.nextDouble() * 4;
-      final colors = [
-        Colors.white,
-        const Color(0xFFFFE0E0).withValues(alpha: 0.5),
-        const Color(0xFFFFFFCC).withValues(alpha: 0.5),
-      ];
-      sprinklePaint.color = colors[random.nextInt(colors.length)];
-      _drawStar(canvas, Offset(x, y), starSize, sprinklePaint);
-    }
-  }
-
-  void _drawStar(Canvas canvas, Offset center, double size, Paint paint) {
-    final path = Path();
-    const points = 4;
-    for (int i = 0; i < points * 2; i++) {
-      final angle = (i * math.pi / points) - math.pi / 2;
-      final radius = i.isEven ? size : size / 2;
-      final x = center.dx + radius * math.cos(angle);
-      final y = center.dy + radius * math.sin(angle);
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
