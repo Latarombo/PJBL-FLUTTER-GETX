@@ -15,7 +15,8 @@ class SignInView extends GetView<SignInController> {
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      resizeToAvoidBottomInset: true,
+      // false agar layout tidak bergeser saat keyboard muncul
+      resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
           // ── Background Image (atas) ──────────────────────────────
@@ -52,7 +53,7 @@ class SignInView extends GetView<SignInController> {
             ),
           ),
 
-          // ── Form Card (putih, mengisi sisa layar) ────────────────
+          // ── Form Card (putih, fixed — tidak bisa di-scroll) ──────
           Positioned(
             top: screenHeight * 0.22,
             left: 0,
@@ -66,102 +67,89 @@ class SignInView extends GetView<SignInController> {
                   topRight: Radius.circular(30),
                 ),
               ),
-              child: SingleChildScrollView(
-                physics: const ClampingScrollPhysics(),
-                padding: EdgeInsets.only(
-                  left: 24,
-                  right: 24,
-                  top: 32,
-                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // ── Judul ──────────────────────────────────────
-                    const Text(
-                      'Masuk',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
+              padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Judul ──────────────────────────────────────
+                  const Text(
+                    'Masuk',
+                    style: TextStyle(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  Text(
+                    'Silahkan masuk ke akunmu untuk melanjutkan petualangan di SantaraNa!',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+
+                  // ── Email ──────────────────────────────────────
+                  InputField(
+                    controller: controller.emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    hint: 'Email',
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ── Password ───────────────────────────────────
+                  Obx(
+                    () => InputField(
+                      controller: controller.passwordController,
+                      hint: 'Password',
+                      obscureText: controller.obscurePassword.value,
+                      toggleObscure: controller.toggleObscurePassword,
+                    ),
+                  ),
+
+                  // ── Lupa Password ──────────────────────────────
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: controller.goToForgotPassword,
+                      child: Text(
+                        'lupa password?*',
+                        style: TextStyle(color: Colors.grey[700], fontSize: 12),
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Silahkan masuk ke akunmu untuk melanjutkan petualangan di SantaraNa!',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
+                  ),
 
-                    // ── Email ──────────────────────────────────────
-                    InputField(
-                      controller: controller.emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      hint: 'Email',
+                  // ── Tombol Masuk ───────────────────────────────
+                  Obx(
+                    () => PrimaryButton(
+                      text: controller.isLoading.value
+                          ? 'Memproses...'
+                          : 'Masuk',
+                      onPressed: controller.isLoading.value
+                          ? () {}
+                          : controller.handleSignIn,
                     ),
-                    const SizedBox(height: 16),
+                  ),
+                  const SizedBox(height: 24),
 
-                    // ── Password ───────────────────────────────────
-                    Obx(
-                      () => InputField(
-                        controller: controller.passwordController,
-                        hint: 'Password',
-                        obscureText: controller.obscurePassword.value,
-                        toggleObscure: controller.toggleObscurePassword,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                  // ── Google ─────────────────────────────────────
+                  SocialLoginButton(
+                    text: 'Lanjut dengan Google',
+                    iconPath: 'assets/images/icon_google.png',
+                    onPressed: controller.handleGoogleSignIn,
+                  ),
+                  const SizedBox(height: 16),
 
-                    // ── Lupa Password ──────────────────────────────
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: controller.goToForgotPassword,
-                        child: Text(
-                          'lupa password?*',
-                          style: TextStyle(
-                            color: Colors.grey[700],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // ── Tombol Masuk ───────────────────────────────
-                    Obx(
-                      () => PrimaryButton(
-                        text: controller.isLoading.value
-                            ? 'Memproses...'
-                            : 'Masuk',
-                        onPressed: controller.isLoading.value
-                            ? () {}
-                            : controller.handleSignIn,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // ── Google ─────────────────────────────────────
-                    SocialLoginButton(
-                      text: 'Lanjut dengan Google',
-                      iconPath: 'assets/images/icon_google.png',
-                      onPressed: controller.handleGoogleSignIn,
-                    ),
-                    const SizedBox(height: 16),
-
-                    // ── Facebook ───────────────────────────────────
-                    SocialLoginButton(
-                      text: 'Lanjut dengan Facebook',
-                      iconPath: 'assets/images/icon_facebook.png',
-                      onPressed: controller.handleFacebookSignIn,
-                    ),
-                    const SizedBox(height: 32),
-                  ],
-                ),
+                  // ── Facebook ───────────────────────────────────
+                  SocialLoginButton(
+                    text: 'Lanjut dengan Facebook',
+                    iconPath: 'assets/images/icon_facebook.png',
+                    onPressed: controller.handleFacebookSignIn,
+                  ),
+                ],
               ),
             ),
           ),
