@@ -977,9 +977,17 @@ class HomeView extends GetView<HomeController> {
                                 fontSize: 36,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 36 * 0.08,
-                                color: mission.imagePath != null
-                                    ? const Color(0xFFFFF8E7)
-                                    : numberColor,
+                                color: (isCompleted || isInProgress)
+                                    ? const Color(
+                                        0xFFFFD700,
+                                      ) // emas untuk aktif/selesai
+                                    : mission.imagePath != null
+                                    ? const Color(
+                                        0xFFFFF8E7,
+                                      ) // krem jika locked+ada gambar
+                                    : const Color(
+                                        0xFFCCCCCC,
+                                      ), // abu jika locked+tanpa gambar
                                 height: 1.0,
                               ),
                             ),
@@ -1026,35 +1034,57 @@ class HomeView extends GetView<HomeController> {
   // inProgress → icon tanda tanya (icon_question.png)
   // locked     → icon gembok (icon_lock.png)
   Widget _buildBottomRightIcon(_DailyMission mission, {bool hasImage = false}) {
+    // Warna border kotak sesuai status
+    final boxBorderColor = switch (mission.status) {
+      _MissionStatus.completed => const Color(0xFF2E7D32), // hijau
+      _MissionStatus.inProgress => const Color(0xFFCC3333), // merah
+      _MissionStatus.locked => hasImage ? Colors.white : Colors.grey.shade500,
+      _MissionStatus.special => Colors.grey.shade500,
+    };
+
+    // Wrapper kotak transparan dengan border rounded
+    Widget withBox(Widget child) {
+      return Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          border: Border.all(color: boxBorderColor, width: 2),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Center(child: child),
+      );
+    }
+
     switch (mission.status) {
       case _MissionStatus.completed:
-        return Image.asset(
-          'assets/images/icon_check.png',
-          width: 40,
-          height: 40,
-          errorBuilder: (_, __, ___) => Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFF2E7D32), width: 2),
-              borderRadius: BorderRadius.circular(6),
-            ),
+        return withBox(
+          Image.asset(
+            'assets/images/icon_check.png',
+            width: 22,
+            height: 22,
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.check, size: 20, color: const Color(0xFF2E7D32)),
           ),
         );
+
       case _MissionStatus.inProgress:
-        return Image.asset(
-          'assets/images/icon_question.png',
-          width: 30,
-          height: 30,
-          errorBuilder: (_, __, ___) => const Text(
-            '?',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFFCC3333),
+        return withBox(
+          Image.asset(
+            'assets/images/icon_question.png',
+            width: 22,
+            height: 22,
+            errorBuilder: (_, __, ___) => const Text(
+              '?',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFCC3333),
+              ),
             ),
           ),
         );
+
       case _MissionStatus.locked:
       default:
         return ColorFiltered(
