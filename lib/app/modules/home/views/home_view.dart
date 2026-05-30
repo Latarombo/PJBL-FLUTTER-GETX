@@ -142,8 +142,6 @@ class HomeView extends GetView<HomeController> {
                     'assets/images/character_game.png',
                     height: 140,
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) =>
-                        const SizedBox.shrink(),
                   ),
                 ),
               ),
@@ -581,15 +579,6 @@ class HomeView extends GetView<HomeController> {
                 child: Image.asset(
                   'assets/images/promo_game.png',
                   fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF5A8B7E), Color(0xFF4A7A6D)],
-                      ),
-                    ),
-                  ),
                 ),
               ),
               Positioned.fill(
@@ -620,12 +609,6 @@ class HomeView extends GetView<HomeController> {
                           width: 35,
                           height: 35,
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(
-                                Icons.gamepad,
-                                color: Colors.white,
-                                size: 35,
-                              ),
                         ),
                         const SizedBox(width: 12),
                         const Expanded(
@@ -768,19 +751,6 @@ class HomeView extends GetView<HomeController> {
                 'assets/images/calender.png',
                 width: 35,
                 height: 35,
-                errorBuilder: (_, __, ___) => Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5A623),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    Icons.calendar_month_rounded,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                ),
               ),
               const SizedBox(width: 10),
               Stack(
@@ -830,8 +800,6 @@ class HomeView extends GetView<HomeController> {
                 'assets/images/badge_master.png',
                 width: 28,
                 height: 28,
-                errorBuilder: (_, __, ___) =>
-                    const Text('🏅', style: TextStyle(fontSize: 20)),
               ),
             ],
           ),
@@ -928,16 +896,38 @@ class HomeView extends GetView<HomeController> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Angka misi
-                      Text(
-                        mission.number.toString().padLeft(2, '0'),
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 36,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 36 * 0.08,
-                          color: numberColor,
-                          height: 1.0,
-                        ),
+                      // Angka misi — dengan stroke inline
+                      Stack(
+                        children: [
+                          // Layer 1: stroke (outline)
+                          Text(
+                            mission.number.toString().padLeft(2, '0'),
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 36,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 36 * 0.08,
+                              height: 1.0,
+                              foreground: Paint()
+                                ..style = PaintingStyle.stroke
+                                ..strokeWidth = 2.5
+                                ..strokeJoin = StrokeJoin.round
+                                ..color = const Color(0xFF383838),
+                            ),
+                          ),
+                          // Layer 2: fill warna
+                          Text(
+                            mission.number.toString().padLeft(2, '0'),
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontSize: 36,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 36 * 0.08,
+                              color: numberColor,
+                              height: 1.0,
+                            ),
+                          ),
+                        ],
                       ),
                       // Icon kanan atas: api untuk completed, kosong untuk lainnya
                       _buildTopRightIcon(mission),
@@ -985,13 +975,6 @@ class HomeView extends GetView<HomeController> {
           assetPath,
           width: 26,
           height: 26,
-          errorBuilder: (_, __, ___) => Icon(
-            Icons.local_fire_department_rounded,
-            size: 26,
-            color: mission.number.isOdd
-                ? const Color(0xFFFF6B00)
-                : const Color(0xFFFF69B4),
-          ),
         );
       case _MissionStatus.inProgress:
       case _MissionStatus.locked:
@@ -1012,19 +995,6 @@ class HomeView extends GetView<HomeController> {
           'assets/images/icon_check.png',
           width: 40,
           height: 40,
-          errorBuilder: (_, __, ___) => Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              border: Border.all(color: const Color(0xFF2E7D32), width: 2),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Icon(
-              Icons.check_rounded,
-              color: Color(0xFF2E7D32),
-              size: 20,
-            ),
-          ),
         );
       case _MissionStatus.inProgress:
         // Tanda tanya di bawah kanan — sesuai Figma card 03
@@ -1032,14 +1002,6 @@ class HomeView extends GetView<HomeController> {
           'assets/images/icon_question.png',
           width: 30,
           height: 30,
-          errorBuilder: (_, __, ___) => const Text(
-            '?',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFFCC3333),
-            ),
-          ),
         );
       case _MissionStatus.locked:
       default:
@@ -1047,8 +1009,6 @@ class HomeView extends GetView<HomeController> {
           'assets/images/icon_lock.png',
           width: 26,
           height: 26,
-          errorBuilder: (_, __, ___) =>
-              Icon(Icons.lock_rounded, size: 22, color: Colors.grey[500]),
         );
     }
   }
@@ -1066,7 +1026,7 @@ class HomeView extends GetView<HomeController> {
       onTap: () => _onMissionTap(mission),
       child: Stack(
         children: [
-          // ── Layer 1 (terluar) ─────────────────────────────────────
+          // ── Layer 1 (terluar) ─────────────────────────────────
           Container(
             height: 160,
             decoration: BoxDecoration(
@@ -1077,7 +1037,7 @@ class HomeView extends GetView<HomeController> {
               ),
             ),
           ),
-          // ── Layer 2 (dalam): background image + content ───────────
+          // ── Layer 2 (dalam): background image + content ───────
           Positioned(
             top: 8,
             left: 8,
@@ -1092,8 +1052,6 @@ class HomeView extends GetView<HomeController> {
                     child: Image.asset(
                       'assets/images/tarian_adat.png',
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
-                          Container(color: const Color(0xFF5A5A5A)),
                     ),
                   ),
                   // Grayscale overlay
@@ -1121,7 +1079,7 @@ class HomeView extends GetView<HomeController> {
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(19),
                         border: Border.all(
                           color: strokeColor.withValues(alpha: 0.35),
                           width: 1.0,
@@ -1129,58 +1087,90 @@ class HomeView extends GetView<HomeController> {
                       ),
                     ),
                   ),
-                  // Content
+                  // ── Content ──────────────────────────────────
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 14,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.center,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                    child: Stack(
                       children: [
-                        // Kiri: angka 07 + label
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '07',
+                        // Kiri bawah: angka 07 + label "Mudah"
+                        Positioned(
+                          left: 0,
+                          bottom: 0,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Angka 07 dengan stroke inline
+                              Stack(
+                                children: [
+                                  Text(
+                                    '07',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 52,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 52 * 0.08,
+                                      height: 1.0,
+                                      foreground: Paint()
+                                        ..style = PaintingStyle.stroke
+                                        ..strokeWidth = 3.0
+                                        ..strokeJoin = StrokeJoin.round
+                                        ..color = const Color(
+                                          0xFF383838,
+                                        ).withValues(alpha: 0.6),
+                                    ),
+                                  ),
+                                  Text(
+                                    '07',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontSize: 52,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 52 * 0.08,
+                                      color: Colors.white.withValues(
+                                        alpha: 0.55,
+                                      ),
+                                      height: 1.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                mission.difficulty,
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white.withValues(alpha: 0.80),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Kanan tengah: tanda ? besar dekoratif
+                        Positioned(
+                          right: 40,
+                          top: 0,
+                          bottom: 0,
+                          child: Center(
+                            child: Text(
+                              '?',
                               style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontSize: 40,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: 40 * 0.08,
-                                color: Colors.white.withValues(alpha: 0.55),
+                                fontSize: 80,
+                                fontWeight: FontWeight.w900,
+                                color: Colors.white.withValues(alpha: 0.25),
                                 height: 1.0,
                               ),
                             ),
-                            const SizedBox(height: 4),
-                            Text(
-                              mission.difficulty,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.white.withValues(alpha: 0.75),
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ],
-                        ),
-                        // Tengah: tanda tanya besar dekoratif
-                        Text(
-                          '?',
-                          style: TextStyle(
-                            fontSize: 72,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white.withValues(alpha: 0.15),
                           ),
                         ),
-                        // Kanan: icon gembok dari asset
-                        Image.asset(
-                          'assets/images/icon_lock.png',
-                          width: 34,
-                          height: 34,
-                          errorBuilder: (_, __, ___) => Container(
+
+                        // Kanan bawah: icon gembok
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
                             width: 34,
                             height: 34,
                             decoration: BoxDecoration(
