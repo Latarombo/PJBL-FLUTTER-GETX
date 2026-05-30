@@ -43,27 +43,27 @@ class HomeView extends GetView<HomeController> {
     ),
     _DailyMission(
       number: 3,
-      difficulty: 'Mudah',
+      difficulty: 'Sedang',
       status: _MissionStatus.inProgress,
     ),
     _DailyMission(
       number: 4,
-      difficulty: 'Mudah',
+      difficulty: 'Sedang',
       status: _MissionStatus.locked,
     ),
     _DailyMission(
       number: 5,
-      difficulty: 'Mudah',
+      difficulty: 'Sulit',
       status: _MissionStatus.locked,
     ),
     _DailyMission(
       number: 6,
-      difficulty: 'Mudah',
+      difficulty: 'Sulit',
       status: _MissionStatus.locked,
     ),
     _DailyMission(
       number: 7,
-      difficulty: 'Mudah',
+      difficulty: 'Sangat Sulit',
       status: _MissionStatus.special,
     ),
   ];
@@ -747,11 +747,7 @@ class HomeView extends GetView<HomeController> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Image.asset(
-                'assets/images/calender.png',
-                width: 35,
-                height: 35,
-              ),
+              Image.asset('assets/images/calender.png', width: 35, height: 35),
               const SizedBox(width: 10),
               Stack(
                 clipBehavior: Clip.none,
@@ -971,11 +967,7 @@ class HomeView extends GetView<HomeController> {
         final assetPath = mission.number.isOdd
             ? 'assets/images/icon_fire_orange.png'
             : 'assets/images/icon_fire_pink.png';
-        return Image.asset(
-          assetPath,
-          width: 26,
-          height: 26,
-        );
+        return Image.asset(assetPath, width: 26, height: 26);
       case _MissionStatus.inProgress:
       case _MissionStatus.locked:
       default:
