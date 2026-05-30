@@ -37,19 +37,17 @@ class HomeView extends GetView<HomeController> {
       number: 1,
       difficulty: 'Mudah',
       status: _MissionStatus.completed,
-      imagePath: 'assets/images/tarian_adat.png',
+      imagePath: 'assets/images/musik_nusantara.png',
     ),
     _DailyMission(
       number: 2,
       difficulty: 'Mudah',
       status: _MissionStatus.completed,
-      imagePath: 'assets/images/mission_02.png',
     ),
     _DailyMission(
       number: 3,
       difficulty: 'Sedang',
       status: _MissionStatus.inProgress,
-      imagePath: 'assets/images/mission_03.png',
     ),
     _DailyMission(
       number: 4,
@@ -61,19 +59,18 @@ class HomeView extends GetView<HomeController> {
       number: 5,
       difficulty: 'Sulit',
       status: _MissionStatus.locked,
-      imagePath: 'assets/images/tarian_adat.png',
+      imagePath: 'assets/images/makanan_nusantara.png',
     ),
     _DailyMission(
       number: 6,
       difficulty: 'Sulit',
       status: _MissionStatus.locked,
-      imagePath: 'assets/images/mission_06.png',
     ),
     _DailyMission(
       number: 7,
       difficulty: 'Sangat Sulit',
       status: _MissionStatus.special,
-      imagePath: 'assets/images/tarian_adat.png',
+      imagePath: 'assets/images/senjata_adat_tradisional.png',
     ),
   ];
 
@@ -867,12 +864,9 @@ class HomeView extends GetView<HomeController> {
           // ── Layer 1 (terluar): stroke 2.5, radius lebih besar ─────
           Container(
             decoration: BoxDecoration(
-              color: Colors.transparent,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: strokeColor.withValues(alpha: isLocked ? 0.25 : 0.75),
-                width: 2.5,
-              ),
+              border: Border.all(color: strokeColor, width: 2.5),
             ),
           ),
           // ── Layer 2 (dalam): gap ~8px dari layer 1 ────────────────
@@ -944,9 +938,7 @@ class HomeView extends GetView<HomeController> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: const Color(
-                          0xFF3D1C10,
-                        ).withValues(alpha: isLocked ? 0.20 : 0.60),
+                        color: const Color(0xFF3D1C10).withValues(alpha: 0.60),
                         width: 1.0,
                       ),
                     ),
@@ -1014,7 +1006,10 @@ class HomeView extends GetView<HomeController> {
                                           : const Color(0xFF714F4C)),
                               ),
                             ),
-                            _buildBottomRightIcon(mission),
+                            _buildBottomRightIcon(
+                              mission,
+                              hasImage: mission.imagePath != null,
+                            ),
                           ],
                         ),
                       ],
@@ -1062,7 +1057,7 @@ class HomeView extends GetView<HomeController> {
   // completed  → icon centang (icon_check.png)
   // inProgress → icon tanda tanya (icon_question.png)
   // locked     → icon gembok (icon_lock.png)
-  Widget _buildBottomRightIcon(_DailyMission mission) {
+  Widget _buildBottomRightIcon(_DailyMission mission, {bool hasImage = false}) {
     switch (mission.status) {
       case _MissionStatus.completed:
         return Image.asset(
@@ -1075,11 +1070,6 @@ class HomeView extends GetView<HomeController> {
             decoration: BoxDecoration(
               border: Border.all(color: const Color(0xFF2E7D32), width: 2),
               borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Icon(
-              Icons.check_rounded,
-              color: Color(0xFF2E7D32),
-              size: 20,
             ),
           ),
         );
@@ -1099,12 +1089,21 @@ class HomeView extends GetView<HomeController> {
         );
       case _MissionStatus.locked:
       default:
-        return Image.asset(
-          'assets/images/icon_lock.png',
-          width: 26,
-          height: 26,
-          errorBuilder: (_, __, ___) =>
-              Icon(Icons.lock_rounded, size: 22, color: Colors.grey[500]),
+        return ColorFiltered(
+          colorFilter: ColorFilter.mode(
+            hasImage ? Colors.white : Colors.grey.shade500,
+            BlendMode.srcIn,
+          ),
+          child: Image.asset(
+            'assets/images/icon_lock.png',
+            width: 26,
+            height: 26,
+            errorBuilder: (_, __, ___) => Icon(
+              Icons.lock_rounded,
+              size: 22,
+              color: hasImage ? Colors.white : Colors.grey[500],
+            ),
+          ),
         );
     }
   }
@@ -1127,10 +1126,10 @@ class HomeView extends GetView<HomeController> {
           Container(
             height: 160,
             decoration: BoxDecoration(
-              color: Colors.transparent,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: strokeColor.withValues(alpha: 0.25),
+                color: strokeColor,
                 width: 2.5,
               ),
             ),
