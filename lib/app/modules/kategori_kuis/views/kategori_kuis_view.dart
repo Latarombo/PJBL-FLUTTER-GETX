@@ -93,9 +93,9 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
             children: [
               // Ikon kalender dari asset
               Image.asset(
-                'assets/images/logo_mascot2.png',
-                width: 36,
-                height: 36,
+                'assets/images/calender.png',
+                width: 35,
+                height: 35,
                 errorBuilder: (_, __, ___) => Container(
                   width: 36,
                   height: 36,
@@ -312,8 +312,8 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
       case KuisMissionStatus.completed:
         return Image.asset(
           'assets/images/icon_check.png',
-          width: 30,
-          height: 30,
+          width: 40,
+          height: 40,
           errorBuilder: (_, __, ___) => Container(
             width: 30,
             height: 30,
@@ -335,8 +335,8 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
       case KuisMissionStatus.inProgress:
         return Image.asset(
           'assets/images/icon_question.png',
-          width: 30,
-          height: 30,
+          width: 40,
+          height: 40,
           errorBuilder: (_, __, ___) => const Text(
             '?',
             style: TextStyle(

@@ -74,10 +74,11 @@ class HomeController extends GetxController {
   }
 
   /// Navigasi ke QuizView dengan nama kategori sebagai argument
-  void goToQuiz(String categoryName) {
-    Get.toNamed(Routes.QUIZ, arguments: {'category': categoryName})?.then((_) {
-      // Refresh progress saat kembali dari QuizView
-      // Ini memastikan card Aktivitas Terakhir langsung update
+  void goToKategori(String categoryName) {
+    Get.toNamed(
+      Routes.KATEGORI_KUIS,
+      arguments: {'category': categoryName},
+    )?.then((_) {
       fetchUserProgress();
     });
   }

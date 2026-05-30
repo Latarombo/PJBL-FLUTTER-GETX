@@ -134,13 +134,13 @@ class HomeView extends GetView<HomeController> {
 
               // ── Karakter maskot (overlap di header) ───────────────
               Positioned(
-                top: 88,
+                top: 100,
                 right: 40,
                 child: Opacity(
                   opacity: 0.85,
                   child: Image.asset(
                     'assets/images/character_game.png',
-                    height: 180,
+                    height: 140,
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) =>
                         const SizedBox.shrink(),
@@ -416,7 +416,7 @@ class HomeView extends GetView<HomeController> {
                           onPressed: () {
                             // Scroll ke section kategori atau ambil kategori pertama
                             if (controller.categories.isNotEmpty) {
-                              controller.goToQuiz(
+                              controller.goToKategori(
                                 controller.categories.first.name,
                               );
                             }
@@ -452,7 +452,7 @@ class HomeView extends GetView<HomeController> {
 
       // ── NORMAL: ada aktivitas terakhir ────────────────────────────────────
       return GestureDetector(
-        onTap: () => controller.goToQuiz(last.categoryName),
+        onTap: () => controller.goToKategori(last.categoryName),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Container(
@@ -710,7 +710,7 @@ class HomeView extends GetView<HomeController> {
 
   Widget _buildCategoryCard(CategoryModel category) {
     return GestureDetector(
-      onTap: () => controller.goToQuiz(category.name),
+      onTap: () => controller.goToKategori(category.name),
       child: Container(
         width: 140,
         decoration: BoxDecoration(
@@ -765,9 +765,9 @@ class HomeView extends GetView<HomeController> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Image.asset(
-                'assets/images/logo_mascot2.png',
-                width: 36,
-                height: 36,
+                'assets/images/calender.png',
+                width: 35,
+                height: 35,
                 errorBuilder: (_, __, ___) => Container(
                   width: 36,
                   height: 36,
@@ -1010,8 +1010,8 @@ class HomeView extends GetView<HomeController> {
       case _MissionStatus.completed:
         return Image.asset(
           'assets/images/icon_check.png',
-          width: 30,
-          height: 30,
+          width: 40,
+          height: 40,
           errorBuilder: (_, __, ___) => Container(
             width: 30,
             height: 30,
@@ -1068,9 +1068,9 @@ class HomeView extends GetView<HomeController> {
         children: [
           // ── Layer 1 (terluar) ─────────────────────────────────────
           Container(
-            height: 140,
+            height: 160,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(25),
               border: Border.all(
                 color: strokeColor.withValues(alpha: 0.45),
                 width: 2.5,
@@ -1084,13 +1084,13 @@ class HomeView extends GetView<HomeController> {
             right: 8,
             bottom: 8,
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(19),
               child: Stack(
                 children: [
                   // Background image
                   Positioned.fill(
                     child: Image.asset(
-                      'assets/images/bg_home_header.png',
+                      'assets/images/tarian_adat.png',
                       fit: BoxFit.cover,
                       errorBuilder: (_, __, ___) =>
                           Container(color: const Color(0xFF5A5A5A)),
