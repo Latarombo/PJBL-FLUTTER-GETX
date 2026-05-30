@@ -28,6 +28,7 @@
 | Reset waktu | Setiap 00:00 WIB | Konsisten, mudah di-debug |
 | Logika unlock/expire | Client-side (`DateTime.now()` vs `unlock_at`/`expires_at`) | Tidak butuh Cloud Function, lebih murah |
 | Expire rule | `expires_at` misi N = `unlock_at` misi N+1; misi ke-7 = 00:00 hari berikutnya | Sesuai permintaan |
+| Syarat misi ke-7 | User **harus menyelesaikan misi 1–6 pada hari yang sama** untuk bisa mengerjakan misi ke-7 | Misi spesial sebagai reward user aktif harian |
 | Reward | Poin per misi + badge jika streak 7 hari tanpa skip | Badge masuk ke `users/{uid}` medals |
 
 ---
@@ -129,9 +130,12 @@ user_mission_completions/{uid}_{yyyy-MM-dd}
 ├── date                 : String        // "2025-01-21"
 ├── completed_missions   : List<int>     // [1, 2, 3] — nomor misi yang sudah selesai
 ├── points_earned_today  : int           // akumulasi poin dari misi hari ini
+├── all_6_non_special_completed : bool   // true jika misi 1–6 semua sudah selesai (syarat buka misi ke-7)
 ├── all_7_completed      : bool          // true jika List berisi [1,2,3,4,5,6,7]
 └── last_updated_at      : Timestamp
 ```
+
+> **Catatan field baru:** `all_6_non_special_completed` ditambahkan untuk menyimpan apakah user sudah layak membuka misi ke-7, sehingga tidak perlu menghitung ulang di client setiap kali.
 
 ---
 
@@ -139,18 +143,19 @@ user_mission_completions/{uid}_{yyyy-MM-dd}
 
 ### Contoh jadwal unlock (bisa diubah admin via `unlock_hour`):
 
-| Misi | `unlock_hour` | Unlock at | Expires at |
-|------|--------------|-----------|------------|
-| 1 | 0 | 00:00 | 04:00 |
-| 2 | 4 | 04:00 | 08:00 |
-| 3 | 8 | 08:00 | 12:00 |
-| 4 | 12 | 12:00 | 16:00 |
-| 5 | 16 | 16:00 | 20:00 |
-| 6 | 20 | 20:00 | 22:00 |
-| 7 (spesial) | 22 | 22:00 | 00:00 (besok) |
+| Misi | `unlock_hour` | Unlock at | Expires at | Syarat Tambahan |
+|------|--------------|-----------|------------|-----------------|
+| 1 | 0 | 00:00 | 04:00 | — |
+| 2 | 4 | 04:00 | 08:00 | — |
+| 3 | 8 | 08:00 | 12:00 | — |
+| 4 | 12 | 12:00 | 16:00 | — |
+| 5 | 16 | 16:00 | 20:00 | — |
+| 6 | 20 | 20:00 | 22:00 | — |
+| 7 (spesial) | 22 | 22:00 | 00:00 (besok) | **Misi 1–6 harus sudah selesai** |
 
 ### Logika status misi (client-side, computed):
 
+Untuk misi biasa (misi 1–6):
 ```dart
 MissionStatus computeStatus({
   required DateTime now,
@@ -161,9 +166,30 @@ MissionStatus computeStatus({
   if (isCompleted) return MissionStatus.completed;
   if (now.isBefore(unlockAt)) return MissionStatus.locked;
   if (now.isAfter(expiresAt)) return MissionStatus.expired;
-  return MissionStatus.inProgress; // unlock & belum selesai & belum expire
+  return MissionStatus.inProgress;
 }
 ```
+
+Untuk misi ke-7 (spesial) — ada pengecekan tambahan:
+```dart
+MissionStatus computeSpecialStatus({
+  required DateTime now,
+  required DateTime unlockAt,
+  required DateTime expiresAt,
+  required bool isCompleted,
+  required bool all6Completed,   // ← syarat baru
+}) {
+  if (isCompleted) return MissionStatus.completed;
+  if (now.isBefore(unlockAt)) return MissionStatus.locked;
+  if (now.isAfter(expiresAt)) return MissionStatus.expired;
+  // Sudah waktunya, tapi misi 1–6 belum selesai semua
+  if (!all6Completed) return MissionStatus.lockedByProgress;
+  return MissionStatus.inProgress;
+}
+```
+
+> **Status baru `lockedByProgress`:** ditampilkan di UI dengan pesan berbeda, contoh:  
+> *"Selesaikan semua misi hari ini untuk membuka misi spesial ini!"*
 
 ### Aturan streak:
 - Streak +1 jika `all_7_completed = true` pada hari ini DAN `last_completed_date` = kemarin
@@ -246,7 +272,13 @@ class MissionTemplateModel {
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 // ── Status computed client-side ──────────────────────────────────────────────
-enum DailyMissionStatus { locked, inProgress, completed, expired }
+enum DailyMissionStatus {
+  locked,           // belum waktunya
+  lockedByProgress, // sudah waktunya tapi misi 1–6 belum selesai (khusus misi ke-7)
+  inProgress,       // bisa dikerjakan
+  completed,        // sudah selesai
+  expired,          // waktu habis
+}
 
 // ── Satu slot misi dalam dokumen daily_missions ───────────────────────────────
 class MissionSlot {
@@ -302,7 +334,7 @@ class MissionSlot {
     'expires_at': Timestamp.fromDate(expiresAt),
   };
 
-  // ── Computed status (tidak disimpan ke Firestore) ─────────────────────────
+  // ── Computed status untuk misi biasa (1–6) ────────────────────────────────
   DailyMissionStatus computeStatus({
     required DateTime now,
     required bool isCompleted,
@@ -310,6 +342,19 @@ class MissionSlot {
     if (isCompleted) return DailyMissionStatus.completed;
     if (now.isBefore(unlockAt)) return DailyMissionStatus.locked;
     if (now.isAfter(expiresAt)) return DailyMissionStatus.expired;
+    return DailyMissionStatus.inProgress;
+  }
+
+  // ── Computed status untuk misi ke-7 (spesial) ────────────────────────────
+  DailyMissionStatus computeSpecialStatus({
+    required DateTime now,
+    required bool isCompleted,
+    required bool all6Completed, // user sudah selesaikan misi 1–6 hari ini
+  }) {
+    if (isCompleted) return DailyMissionStatus.completed;
+    if (now.isBefore(unlockAt)) return DailyMissionStatus.locked;
+    if (now.isAfter(expiresAt)) return DailyMissionStatus.expired;
+    if (!all6Completed) return DailyMissionStatus.lockedByProgress;
     return DailyMissionStatus.inProgress;
   }
 }
@@ -414,9 +459,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserMissionCompletionModel {
   final String uid;
-  final String date;                  // "yyyy-MM-dd"
-  final List<int> completedMissions;  // [1, 2, 3]
+  final String date;                       // "yyyy-MM-dd"
+  final List<int> completedMissions;       // [1, 2, 3]
   final int pointsEarnedToday;
+  final bool all6NonSpecialCompleted;      // true jika misi 1–6 semua selesai → syarat buka misi ke-7
   final bool all7Completed;
   final DateTime? lastUpdatedAt;
 
@@ -425,6 +471,7 @@ class UserMissionCompletionModel {
     required this.date,
     required this.completedMissions,
     required this.pointsEarnedToday,
+    required this.all6NonSpecialCompleted,
     required this.all7Completed,
     this.lastUpdatedAt,
   });
@@ -434,14 +481,16 @@ class UserMissionCompletionModel {
 
   factory UserMissionCompletionModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    final completed = List<int>.from(
+      (data['completed_missions'] as List<dynamic>? ?? [])
+          .map((e) => (e as num).toInt()),
+    );
     return UserMissionCompletionModel(
       uid: data['uid'] ?? '',
       date: data['date'] ?? '',
-      completedMissions: List<int>.from(
-        (data['completed_missions'] as List<dynamic>? ?? [])
-            .map((e) => (e as num).toInt()),
-      ),
+      completedMissions: completed,
       pointsEarnedToday: (data['points_earned_today'] as num?)?.toInt() ?? 0,
+      all6NonSpecialCompleted: data['all_6_non_special_completed'] ?? false,
       all7Completed: data['all_7_completed'] ?? false,
       lastUpdatedAt: (data['last_updated_at'] as Timestamp?)?.toDate(),
     );
@@ -452,6 +501,7 @@ class UserMissionCompletionModel {
     'date': date,
     'completed_missions': completedMissions,
     'points_earned_today': pointsEarnedToday,
+    'all_6_non_special_completed': all6NonSpecialCompleted,
     'all_7_completed': all7Completed,
     'last_updated_at': FieldValue.serverTimestamp(),
   };
@@ -477,7 +527,6 @@ class DailyMissionService {
 
   // ── Helper: tanggal hari ini sebagai string "yyyy-MM-dd" WIB ──────────────
   String get todayKey {
-    // WIB = UTC+7
     final now = DateTime.now().toUtc().add(const Duration(hours: 7));
     return DateFormat('yyyy-MM-dd').format(now);
   }
@@ -498,13 +547,11 @@ class DailyMissionService {
   }
 
   // ── 2. GENERATE dokumen harian jika belum ada ─────────────────────────────
-  // Dipanggil di DailyMissionController.onInit()
   Future<void> generateTodayIfNeeded() async {
     final docRef = _db.collection('daily_missions').doc(todayKey);
     final snap = await docRef.get();
-    if (snap.exists) return; // sudah ada, skip
+    if (snap.exists) return;
 
-    // Ambil semua template aktif
     final templatesSnap = await _db
         .collection('daily_mission_templates')
         .where('is_active', isEqualTo: true)
@@ -517,26 +564,22 @@ class DailyMissionService {
         .map(MissionTemplateModel.fromFirestore)
         .toList();
 
-    // Hitung reset_at = 00:00 WIB hari ini (dalam UTC)
     final now = _nowWib;
     final resetAt = DateTime.utc(now.year, now.month, now.day)
-        .subtract(const Duration(hours: 7)); // balik ke UTC
+        .subtract(const Duration(hours: 7));
     final nextResetAt = resetAt.add(const Duration(days: 1));
 
-    // Build list MissionSlot
     final slots = <Map<String, dynamic>>[];
     for (int i = 0; i < templates.length; i++) {
       final t = templates[i];
-      final unlockAt = DateTime.utc(now.year, now.month, now.day,
-              t.unlockHour)
+      final unlockAt = DateTime.utc(now.year, now.month, now.day, t.unlockHour)
           .subtract(const Duration(hours: 7));
 
-      // expires_at = unlock_at misi berikutnya; misi terakhir = next_reset_at
       DateTime expiresAt;
       if (i < templates.length - 1) {
         final nextTemplate = templates[i + 1];
-        expiresAt = DateTime.utc(now.year, now.month, now.day,
-                nextTemplate.unlockHour)
+        expiresAt = DateTime.utc(
+                now.year, now.month, now.day, nextTemplate.unlockHour)
             .subtract(const Duration(hours: 7));
       } else {
         expiresAt = nextResetAt;
@@ -580,6 +623,7 @@ class DailyMissionService {
     required int missionNumber,
     required int rewardPoints,
     required int totalMissionsInDay,
+    required bool isSpecial,
   }) async {
     final date = todayKey;
     final docId = UserMissionCompletionModel.docId(uid, date);
@@ -591,17 +635,29 @@ class DailyMissionService {
 
       List<int> completedList = [];
       int pointsToday = 0;
+      bool all6Done = false;
 
       if (snap.exists) {
         final existing = UserMissionCompletionModel.fromFirestore(snap);
-        // Jika misi sudah dicatat, skip (idempotent)
         if (existing.completedMissions.contains(missionNumber)) return;
         completedList = List<int>.from(existing.completedMissions);
         pointsToday = existing.pointsEarnedToday;
+        all6Done = existing.all6NonSpecialCompleted;
+      }
+
+      // Validasi: misi ke-7 hanya bisa diselesaikan jika misi 1–6 sudah selesai
+      if (isSpecial && !all6Done) {
+        throw Exception('Selesaikan semua misi 1–6 terlebih dahulu.');
       }
 
       completedList.add(missionNumber);
       pointsToday += rewardPoints;
+
+      // Cek apakah misi 1–6 (non-spesial) sudah semua selesai
+      final nonSpecialNumbers = List.generate(6, (i) => i + 1); // [1,2,3,4,5,6]
+      final newAll6Done = nonSpecialNumbers
+          .every((n) => completedList.contains(n));
+
       final all7 = completedList.length >= totalMissionsInDay;
 
       tx.set(completionRef, {
@@ -609,6 +665,7 @@ class DailyMissionService {
         'date': date,
         'completed_missions': completedList,
         'points_earned_today': pointsToday,
+        'all_6_non_special_completed': newAll6Done,
         'all_7_completed': all7,
         'last_updated_at': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
@@ -619,7 +676,6 @@ class DailyMissionService {
         'lastActiveAt': FieldValue.serverTimestamp(),
       });
 
-      // Jika semua misi selesai, trigger streak update
       if (all7) {
         _updateStreakAfterCompletion(uid, date);
       }
@@ -639,24 +695,20 @@ class DailyMissionService {
 
     if (snap.exists) {
       final existing = UserMissionStreakModel.fromFirestore(snap);
-
-      // Cek apakah last_completed_date adalah kemarin
       final yesterday = _getYesterdayKey();
       final isConsecutive = existing.lastCompletedDate == yesterday;
 
       currentStreak = isConsecutive ? existing.currentStreak + 1 : 1;
-      longestStreak =
-          currentStreak > existing.longestStreak ? currentStreak : existing.longestStreak;
+      longestStreak = currentStreak > existing.longestStreak
+          ? currentStreak
+          : existing.longestStreak;
       badgeEarned = existing.badgeEarned;
       badgeEarnedAt = existing.badgeEarnedAt;
 
-      // Badge: streak mencapai 7 untuk pertama kali
       if (currentStreak >= 7 && !badgeEarned) {
         badgeEarned = true;
         badgeEarnedAt = DateTime.now();
-        // Tambahkan badge ke user
         await _db.collection('users').doc(uid).update({
-          // Simpan badge ke medals — sesuaikan dengan sistem medals existing
           'missionBadgeEarned': true,
           'missionBadgeEarnedAt': FieldValue.serverTimestamp(),
         });
@@ -686,8 +738,7 @@ class DailyMissionService {
 
   // ── Helper: kemarin dalam format "yyyy-MM-dd" ─────────────────────────────
   String _getYesterdayKey() {
-    final yesterday =
-        _nowWib.subtract(const Duration(days: 1));
+    final yesterday = _nowWib.subtract(const Duration(days: 1));
     return DateFormat('yyyy-MM-dd').format(yesterday);
   }
 }
@@ -728,12 +779,26 @@ class DailyMissionController extends GetxController {
     if (doc == null) return [];
     final now = DateTime.now().toUtc().add(const Duration(hours: 7));
     final completed = completion.value?.completedMissions ?? [];
+    final all6Done = completion.value?.all6NonSpecialCompleted ?? false;
 
     return doc.missions.map((slot) {
-      final status = slot.computeStatus(
-        now: now,
-        isCompleted: completed.contains(slot.missionNumber),
-      );
+      final DailyMissionStatus status;
+
+      if (slot.isSpecial) {
+        // Misi ke-7: gunakan computeSpecialStatus
+        status = slot.computeSpecialStatus(
+          now: now,
+          isCompleted: completed.contains(slot.missionNumber),
+          all6Completed: all6Done,
+        );
+      } else {
+        // Misi biasa 1–6
+        status = slot.computeStatus(
+          now: now,
+          isCompleted: completed.contains(slot.missionNumber),
+        );
+      }
+
       return MissionSlotWithStatus(slot: slot, status: status);
     }).toList();
   }
@@ -748,21 +813,17 @@ class DailyMissionController extends GetxController {
   Future<void> _init() async {
     isLoading.value = true;
     try {
-      // Generate dokumen hari ini jika belum ada
       await _service.generateTodayIfNeeded();
 
-      // Stream real-time
       _missionSub = _service.dailyMissionStream().listen((doc) {
         dailyDoc.value = doc;
       });
 
-      // Ambil completion user
       final uid = _auth.uid;
       if (uid != null) {
         completion.value = await _service.getTodayCompletion(uid);
       }
     } catch (e) {
-      // Non-critical: UI tetap tampil
       debugPrint('DailyMissionController init error: $e');
     } finally {
       isLoading.value = false;
@@ -782,6 +843,20 @@ class DailyMissionController extends GetxController {
           margin: const EdgeInsets.all(16),
           borderRadius: 14,
           duration: const Duration(seconds: 2),
+        );
+        break;
+
+      // ── Status baru: terkunci karena misi 1–6 belum selesai ───────────────
+      case DailyMissionStatus.lockedByProgress:
+        Get.snackbar(
+          '🏆 Misi Spesial Terkunci',
+          'Selesaikan semua misi hari ini (1–6) untuk membuka misi spesial ini!',
+          backgroundColor: const Color(0xFF6A1B9A),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 14,
+          duration: const Duration(seconds: 3),
         );
         break;
 
@@ -813,13 +888,12 @@ class DailyMissionController extends GetxController {
 
       case DailyMissionStatus.inProgress:
         // TODO: Navigasi ke halaman challenge misi
-        // Get.toNamed(Routes.MISSION_CHALLENGE, arguments: {'slot': item.slot});
-        _doCompleteMission(item.slot); // Sementara: langsung complete (untuk testing)
+        _doCompleteMission(item.slot);
         break;
     }
   }
 
-  // ── Selesaikan misi (dipanggil setelah user menyelesaikan challenge) ────────
+  // ── Selesaikan misi ────────────────────────────────────────────────────────
   Future<void> _doCompleteMission(MissionSlot slot) async {
     final uid = _auth.uid;
     if (uid == null) return;
@@ -831,12 +905,10 @@ class DailyMissionController extends GetxController {
         missionNumber: slot.missionNumber,
         rewardPoints: slot.rewardPoints,
         totalMissionsInDay: dailyDoc.value?.missions.length ?? 7,
+        isSpecial: slot.isSpecial,
       );
 
-      // Refresh completion
       completion.value = await _service.getTodayCompletion(uid);
-
-      // Refresh poin di AuthController
       await _auth.refreshUser();
 
       Get.snackbar(
@@ -850,9 +922,12 @@ class DailyMissionController extends GetxController {
         duration: const Duration(seconds: 3),
       );
     } catch (e) {
+      final message = e.toString().contains('misi 1–6')
+          ? 'Selesaikan semua misi 1–6 terlebih dahulu!'
+          : 'Terjadi kesalahan, coba lagi';
       Get.snackbar(
         'Gagal',
-        'Terjadi kesalahan, coba lagi',
+        message,
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -904,43 +979,31 @@ class DailyMissionBinding extends Bindings {
 
 ### 7.1 Perubahan di `home_controller.dart`
 
-Tambahkan di `HomeController`:
-
 ```dart
-// Tambah di atas class HomeController
 import 'package:santarana/app/modules/daily_mission/controllers/daily_mission_controller.dart';
 
-// Tambah di dalam onInit()
 @override
 void onInit() {
   super.onInit();
   fetchCategories();
   fetchUserProgress();
-  // Pastikan DailyMissionController sudah di-inject via AppShellBinding
 }
 ```
 
 ### 7.2 Inject `DailyMissionController` di `app_shell_binding.dart`
 
-Tambahkan di `AppShellBinding.dependencies()`:
-
 ```dart
 import 'package:santarana/app/modules/daily_mission/controllers/daily_mission_controller.dart';
-import 'package:santarana/app/modules/daily_mission/bindings/daily_mission_binding.dart';
 
 // Di dalam dependencies():
 Get.lazyPut<DailyMissionController>(() => DailyMissionController());
 ```
 
-### 7.3 Perubahan di `home_view.dart` — `_buildMisiEksplorHarian()`
-
-Ganti fungsi `_buildMisiEksplorHarian()` dan `_buildMissionGrid()` dengan versi yang membaca dari `DailyMissionController`:
+### 7.3 Perubahan di `home_view.dart` — `_buildMissionGrid()`
 
 ```dart
-// Tambah import di atas home_view.dart
 import 'package:santarana/app/modules/daily_mission/controllers/daily_mission_controller.dart';
 
-// Ganti _buildMisiEksplorHarian() — bagian _buildMissionGrid() saja:
 Widget _buildMissionGrid() {
   final missionCtrl = Get.find<DailyMissionController>();
 
@@ -986,17 +1049,14 @@ Widget _buildMissionGrid() {
 }
 ```
 
-> **Catatan:** Signature `_buildMissionCard` dan `_buildSpecialMissionCard` perlu ditambahkan parameter `onTap: VoidCallback` dan `MissionSlotWithStatus` sebagai pengganti `_DailyMission`. Perubahan detail ini dikerjakan saat step coding aktual.
+> **Catatan UI untuk `lockedByProgress`:** pada `_buildSpecialMissionCard`, tambahkan visual indicator berbeda (misal overlay ungu dengan ikon 🏆 dan teks "Selesaikan semua misi dulu") agar user tahu alasan misi ke-7 terkunci bukan karena jam, melainkan karena progress.
 
 ---
 
 ## 8. Seed Data Firestore (Admin)
 
-Jalankan sekali melalui Firestore console atau script Dart berikut untuk mengisi `daily_mission_templates`:
-
 ```dart
 // Script: seed_daily_mission_templates.dart (jalankan sekali)
-// Letakkan di tools/ atau jalankan via Flutter test
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -1006,7 +1066,7 @@ final templates = [
     'description': 'Jawab 5 soal tentang senjata tradisional Indonesia',
     'difficulty': 'Mudah',
     'mission_number': 1,
-    'unlock_hour': 0,      // 00:00 WIB
+    'unlock_hour': 0,
     'reward_points': 15,
     'is_special': false,
     'is_active': true,
@@ -1017,7 +1077,7 @@ final templates = [
     'description': 'Tebak alat musik tradisional dari deskripsinya',
     'difficulty': 'Mudah',
     'mission_number': 2,
-    'unlock_hour': 4,      // 04:00 WIB
+    'unlock_hour': 4,
     'reward_points': 15,
     'is_special': false,
     'is_active': true,
@@ -1028,7 +1088,7 @@ final templates = [
     'description': 'Cocokkan tarian dengan daerah asalnya',
     'difficulty': 'Sedang',
     'mission_number': 3,
-    'unlock_hour': 8,      // 08:00 WIB
+    'unlock_hour': 8,
     'reward_points': 20,
     'is_special': false,
     'is_active': true,
@@ -1039,7 +1099,7 @@ final templates = [
     'description': 'Kenali makanan tradisional dari namanya',
     'difficulty': 'Sedang',
     'mission_number': 4,
-    'unlock_hour': 12,     // 12:00 WIB
+    'unlock_hour': 12,
     'reward_points': 20,
     'is_special': false,
     'is_active': true,
@@ -1050,7 +1110,7 @@ final templates = [
     'description': 'Tebak rumah adat dari siluet gambarnya',
     'difficulty': 'Sulit',
     'mission_number': 5,
-    'unlock_hour': 16,     // 16:00 WIB
+    'unlock_hour': 16,
     'reward_points': 25,
     'is_special': false,
     'is_active': true,
@@ -1061,7 +1121,7 @@ final templates = [
     'description': 'Identifikasi pakaian adat dari daerah mana',
     'difficulty': 'Sulit',
     'mission_number': 6,
-    'unlock_hour': 20,     // 20:00 WIB
+    'unlock_hour': 20,
     'reward_points': 25,
     'is_special': false,
     'is_active': true,
@@ -1072,7 +1132,7 @@ final templates = [
     'description': 'Tantangan spesial: semua kategori dalam satu misi!',
     'difficulty': 'Sangat Sulit',
     'mission_number': 7,
-    'unlock_hour': 22,     // 22:00 WIB
+    'unlock_hour': 22,
     'reward_points': 50,
     'is_special': true,
     'is_active': true,
@@ -1101,31 +1161,30 @@ Future<void> seedTemplates() async {
 
 ## 9. Urutan Eksekusi Penulisan Kode
 
-Ikuti urutan ini agar tidak ada dependency error:
-
 ```
 1. pubspec.yaml
    └── Tambahkan: intl: ^0.19.0
 
 2. Models (tidak ada dependency antar-model)
    ├── lib/shared/models/mission_template_model.dart
-   ├── lib/shared/models/daily_mission_model.dart
+   ├── lib/shared/models/daily_mission_model.dart        ← tambah enum lockedByProgress
    ├── lib/shared/models/user_mission_streak_model.dart
-   └── lib/shared/models/user_mission_completion_model.dart
+   └── lib/shared/models/user_mission_completion_model.dart  ← tambah all_6_non_special_completed
 
 3. Service
-   └── lib/shared/services/daily_mission_service.dart
+   └── lib/shared/services/daily_mission_service.dart   ← tambah validasi isSpecial di completeMission
 
 4. Controller + Binding
    ├── lib/app/modules/daily_mission/controllers/daily_mission_controller.dart
+   │   └── tambah case lockedByProgress di onMissionTap
    └── lib/app/modules/daily_mission/bindings/daily_mission_binding.dart
 
 5. Inject ke shell
-   └── lib/app/app_shell_binding.dart  (tambah DailyMissionController)
+   └── lib/app/app_shell_binding.dart
 
 6. Update HomeView
    └── lib/app/modules/home/views/home_view.dart
-       └── Ganti _buildMissionGrid() agar baca dari DailyMissionController
+       └── tambah visual lockedByProgress pada _buildSpecialMissionCard
 
 7. Seed Firestore (jalankan sekali)
    └── Isi collection daily_mission_templates via script atau console
@@ -1143,11 +1202,15 @@ Ikuti urutan ini agar tidak ada dependency error:
 - [ ] Kartu misi 1 status `inProgress` di jam 00:00–04:00
 - [ ] Kartu misi 1 status `expired` setelah jam 04:00
 - [ ] Kartu misi 2 status `locked` sebelum jam 04:00, `inProgress` setelahnya
-- [ ] Selesaikan misi → poin bertambah di HomeView (via `authController.totalPoints`)
+- [ ] Misi ke-7 jam 22:00–00:00, status `lockedByProgress` jika misi 1–6 belum selesai
+- [ ] Misi ke-7 status `inProgress` hanya setelah misi 1–6 **semua** selesai
+- [ ] Tap misi ke-7 saat `lockedByProgress` → snackbar ungu muncul
+- [ ] Selesaikan misi → poin bertambah di HomeView
+- [ ] `all_6_non_special_completed` berubah `true` saat misi ke-6 diselesaikan
 - [ ] Selesaikan semua 7 misi → `all_7_completed = true`
 - [ ] Streak bertambah jika kemarin juga selesai 7 misi
 - [ ] Streak reset jika ada hari yang di-skip
-- [ ] Setelah 7 hari streak → `badge_earned = true` di `user_mission_streaks`
-- [ ] Misi ke-7 (spesial) hanya unlock jam 22:00, expire jam 00:00 besok
+- [ ] Setelah 7 hari streak → `badge_earned = true`
 - [ ] Tidak ada duplikasi dokumen `daily_missions` pada hari yang sama
 - [ ] `completeMission()` idempotent — misi yang sudah selesai tidak di-complete ulang
+- [ ] `completeMission()` throw error jika misi ke-7 dicoba sebelum misi 1–6 selesai

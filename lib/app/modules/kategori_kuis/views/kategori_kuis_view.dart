@@ -6,12 +6,12 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
   const KategoriKuisView({super.key});
 
   // ── Warna ────────────────────────────────────────────────────────────────
-  static const _bg         = Color(0xFFF9F4E4);
+  static const _bg = Color(0xFFF9F4E4);
   static const _strokeDark = Color(0xFF3D1C10);
-  static const _gold       = Color(0xFFB8860B);
-  static const _grey       = Color(0xFFCCCCCC);
-  static const _brownText  = Color(0xFF714F4C);
-  static const _redDark    = Color(0xFF8B3A3A);
+  static const _gold = Color(0xFFB8860B);
+  static const _grey = Color(0xFFCCCCCC);
+  static const _brownText = Color(0xFF714F4C);
+  static const _redDark = Color(0xFF8B3A3A);
 
   @override
   Widget build(BuildContext context) {
@@ -87,11 +87,9 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Baris atas: ikon kalender + judul + label "Pengingat!" ──
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Ikon kalender dari asset
               Image.asset(
                 'assets/images/calender.png',
                 width: 35,
@@ -111,8 +109,6 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
                 ),
               ),
               const SizedBox(width: 10),
-
-              // Judul dengan underline merah
               Expanded(
                 child: Stack(
                   clipBehavior: Clip.none,
@@ -124,7 +120,9 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
                       child: Container(
                         height: 8,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFB85C52).withValues(alpha: 0.50),
+                          color: const Color(
+                            0xFFB85C52,
+                          ).withValues(alpha: 0.50),
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
@@ -142,15 +140,9 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
                   ],
                 ),
               ),
-
               const SizedBox(width: 8),
-
-              // Label "Pengingat!" di kanan atas
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 8,
-                  vertical: 3,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF3E0),
                   borderRadius: BorderRadius.circular(20),
@@ -170,10 +162,7 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
               ),
             ],
           ),
-
           const SizedBox(height: 10),
-
-          // ── Baris bawah: sub-teks + ikon medali ────────────────────
           Row(
             children: [
               const Text(
@@ -219,31 +208,41 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
   }
 
   // ── SINGLE MISSION CARD ───────────────────────────────────────────────────
+  // Mengikuti style card 1-6 di HomeView:
+  // - Layer luar: border tebal (strokeDark), radius 20
+  // - Layer dalam: gap 8px, border tipis, radius 14
+  // - Angka besar dengan stroke
+  // - Icon status dalam kotak border pojok kanan bawah
   Widget _buildMissionCard(KuisMission mission) {
-    final isCompleted  = mission.status == KuisMissionStatus.completed;
+    final isCompleted = mission.status == KuisMissionStatus.completed;
     final isInProgress = mission.status == KuisMissionStatus.inProgress;
-    final isLocked     = mission.status == KuisMissionStatus.locked;
+    final isLocked = mission.status == KuisMissionStatus.locked;
 
     // Warna angka: emas untuk completed/inProgress, abu untuk locked
-    final numberColor = (isCompleted || isInProgress) ? _gold : _grey;
+    final numberFillColor = (isCompleted || isInProgress)
+        ? const Color(0xFFFFD700)
+        : const Color(0xFFCCCCCC);
+
+    // Opasitas border luar: penuh untuk aktif, redup untuk locked
+    final outerBorderAlpha = isLocked ? 0.25 : 0.75;
 
     return GestureDetector(
       onTap: () => controller.onMissionTap(mission),
       child: Stack(
         children: [
-          // ── Layer 1 (terluar): border tebal, radius besar ──────────
+          // ── Layer 1 (terluar): border tebal, background putih ──────
           Container(
             decoration: BoxDecoration(
-              color: Colors.transparent,
+              color: Colors.white,
               borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: _strokeDark.withValues(alpha: isLocked ? 0.25 : 0.75),
+                color: _strokeDark.withValues(alpha: outerBorderAlpha),
                 width: 2.5,
               ),
             ),
           ),
 
-          // ── Layer 2 (dalam): card putih dengan gap 8px ──────────────
+          // ── Layer 2 (dalam): gap 8px dari tepi ─────────────────────
           Positioned(
             top: 8,
             left: 8,
@@ -255,7 +254,7 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
                 borderRadius: BorderRadius.circular(14),
                 border: Border.all(
                   color: _strokeDark.withValues(alpha: isLocked ? 0.20 : 0.60),
-                  width: 1.0,
+                  width: 1.5,
                 ),
               ),
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
@@ -263,35 +262,54 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // ── Baris atas: nomor saja (tanpa icon api) ────────
-                  Text(
-                    mission.number.toString().padLeft(2, '0'),
-                    style: TextStyle(
-                      fontFamily: 'Inter',
-                      fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 36 * 0.08,
-                      color: numberColor,
-                      height: 1.0,
-                    ),
+                  // ── Angka dengan stroke (persis seperti HomeView) ──
+                  Stack(
+                    children: [
+                      // Stroke layer
+                      Text(
+                        mission.number.toString().padLeft(2, '0'),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 36,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 36 * 0.08,
+                          height: 1.0,
+                          foreground: Paint()
+                            ..style = PaintingStyle.stroke
+                            ..strokeWidth = 2.5
+                            ..strokeJoin = StrokeJoin.round
+                            ..color = const Color(0xFF383838),
+                        ),
+                      ),
+                      // Fill layer
+                      Text(
+                        mission.number.toString().padLeft(2, '0'),
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 36,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 36 * 0.08,
+                          color: numberFillColor,
+                          height: 1.0,
+                        ),
+                      ),
+                    ],
                   ),
 
-                  // ── Baris bawah: label kesulitan + icon status ─────
+                  // ── Baris bawah: label difficulty + icon status ────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
                       Text(
                         mission.difficulty,
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w500,
-                          color: isLocked
-                              ? Colors.grey[400]
-                              : _brownText,
+                          color: isLocked ? Colors.grey[400] : _brownText,
                         ),
                       ),
-                      _buildStatusIcon(mission),
+                      _buildBottomRightIcon(mission),
                     ],
                   ),
                 ],
@@ -303,57 +321,78 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
     );
   }
 
-  // ── ICON STATUS (pojok kanan bawah) ──────────────────────────────────────
-  // completed  → icon_check.png
-  // inProgress → icon_question.png
-  // locked     → icon_lock.png
-  Widget _buildStatusIcon(KuisMission mission) {
+  // ── ICON POJOK KANAN BAWAH (dalam kotak border, seperti HomeView) ─────────
+  Widget _buildBottomRightIcon(KuisMission mission) {
+    final isLocked = mission.status == KuisMissionStatus.locked;
+
+    // Warna border kotak: coklat untuk completed/inProgress, abu untuk locked
+    final boxBorderColor = isLocked ? Colors.grey.shade500 : _strokeDark;
+
+    Widget withBox(Widget child) {
+      return SizedBox(
+        width: 36,
+        height: 36,
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            // Kotak border
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                border: Border.all(color: boxBorderColor, width: 2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            // Icon sedikit overflow ke kanan bawah (seperti HomeView)
+            Positioned(right: -5, bottom: 8, child: child),
+          ],
+        ),
+      );
+    }
+
     switch (mission.status) {
       case KuisMissionStatus.completed:
-        return Image.asset(
-          'assets/images/icon_check.png',
-          width: 40,
-          height: 40,
-          errorBuilder: (_, __, ___) => Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: const Color(0xFF2E7D32),
-                width: 2,
-              ),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Icon(
-              Icons.check_rounded,
-              color: Color(0xFF2E7D32),
-              size: 20,
-            ),
+        return withBox(
+          Image.asset(
+            'assets/images/icon_check.png',
+            width: 42,
+            height: 42,
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.check, size: 20, color: const Color(0xFF2E7D32)),
           ),
         );
 
       case KuisMissionStatus.inProgress:
-        return Image.asset(
-          'assets/images/icon_question.png',
-          width: 40,
-          height: 40,
-          errorBuilder: (_, __, ___) => const Text(
-            '?',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFFCC3333),
+        return withBox(
+          Image.asset(
+            'assets/images/icon_question.png',
+            width: 42,
+            height: 42,
+            errorBuilder: (_, __, ___) => const Text(
+              '?',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                color: Color(0xFFCC3333),
+              ),
             ),
           ),
         );
 
       case KuisMissionStatus.locked:
-        return Image.asset(
-          'assets/images/icon_lock.png',
-          width: 26,
-          height: 26,
-          errorBuilder: (_, __, ___) =>
-              Icon(Icons.lock_rounded, size: 22, color: Colors.grey[500]),
+      default:
+        return ColorFiltered(
+          colorFilter: ColorFilter.mode(Colors.grey.shade500, BlendMode.srcIn),
+          child: Image.asset(
+            'assets/images/icon_lock.png',
+            width: 26,
+            height: 26,
+            errorBuilder: (_, __, ___) =>
+                Icon(Icons.lock_rounded, size: 22, color: Colors.grey[500]),
+          ),
         );
     }
   }

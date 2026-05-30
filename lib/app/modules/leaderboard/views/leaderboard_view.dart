@@ -15,9 +15,18 @@ class LeaderboardView extends GetView<LeaderboardController> {
       backgroundColor: const Color(0xFFF9F4E4),
       body: Stack(
         children: [
+          // ── Background image (menggantikan CustomPaint painter) ──────
           Positioned.fill(
-            child: CustomPaint(painter: LeaderboardBackgroundPainter()),
+            child: Image.asset(
+              'assets/images/bg_leaderboard.png',
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) {
+                // Fallback ke gradient lama jika aset belum ada
+                return CustomPaint(painter: LeaderboardBackgroundPainter());
+              },
+            ),
           ),
+
           SafeArea(
             child: Column(
               children: [
@@ -96,7 +105,6 @@ class LeaderboardView extends GetView<LeaderboardController> {
       child: Obx(() {
         final top = controller.top3;
 
-        // Upadate
         if (controller.isLoading.value) {
           return const Center(
             child: CircularProgressIndicator(color: Color(0xFFFFB347)),
@@ -532,16 +540,17 @@ class LeaderboardView extends GetView<LeaderboardController> {
         ),
       );
     });
-  } // ← penutup _buildCurrentUserCard()
-} // ← penutup class LeaderboardView
+  }
+}
 
+// Fallback painter — tetap dipertahankan jika aset belum ada
 class LeaderboardBackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final gradient = LinearGradient(
+    final gradient = const LinearGradient(
       begin: Alignment.topCenter,
       end: Alignment.bottomCenter,
-      colors: const [Color(0xFFF9F4E4), Color(0xFFFFE8D6), Color(0xffd2947b)],
+      colors: [Color(0xFFF9F4E4), Color(0xFFFFE8D6), Color(0xffd2947b)],
     );
 
     final paint = Paint()
