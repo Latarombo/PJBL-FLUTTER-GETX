@@ -1045,175 +1045,99 @@ class HomeView extends GetView<HomeController> {
   // ── Misi 07 — Full width special ─────────────────────────────────────────
   Widget _buildSpecialMissionCard(_DailyMission mission) {
     const strokeColor = Color(0xFF3D1C10);
+    const numberColor = Color(0xFFCCCCCC); // abu seperti locked
 
     return GestureDetector(
       onTap: () => _onMissionTap(mission),
       child: Stack(
         children: [
-          // ── Layer 1 (terluar) ─────────────────────────────────
+          // ── Layer 1 (terluar): border tipis seperti locked card ───
           Container(
             height: 160,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(25),
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
-                color: strokeColor.withValues(alpha: 0.45),
+                color: strokeColor.withValues(alpha: 0.25),
                 width: 2.5,
               ),
             ),
           ),
-          // ── Layer 2 (dalam): background image + content ───────
+          // ── Layer 2 (dalam): card putih dengan gap 8px ────────────
           Positioned(
             top: 8,
             left: 8,
             right: 8,
             bottom: 8,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(19),
-              child: Stack(
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: strokeColor.withValues(alpha: 0.20),
+                  width: 1.0,
+                ),
+              ),
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Background image
-                  Positioned.fill(
-                    child: Image.asset(
-                      'assets/images/tarian_adat.png',
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  // Grayscale overlay
-                  Positioned.fill(
-                    child: Container(
-                      color: Colors.grey.withValues(alpha: 0.55),
-                    ),
-                  ),
-                  // Overlay gelap
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                          colors: [
-                            Colors.black.withValues(alpha: 0.45),
-                            Colors.black.withValues(alpha: 0.15),
-                          ],
+                  // ── Baris atas: angka 07 dengan stroke inline ─────
+                  Stack(
+                    children: [
+                      Text(
+                        '07',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 36,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 36 * 0.08,
+                          height: 1.0,
+                          foreground: Paint()
+                            ..style = PaintingStyle.stroke
+                            ..strokeWidth = 2.5
+                            ..strokeJoin = StrokeJoin.round
+                            ..color = const Color(0xFF383838),
                         ),
                       ),
-                    ),
-                  ),
-                  // Border layer 2
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(19),
-                        border: Border.all(
-                          color: strokeColor.withValues(alpha: 0.35),
-                          width: 1.0,
+                      const Text(
+                        '07',
+                        style: TextStyle(
+                          fontFamily: 'Inter',
+                          fontSize: 36,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 36 * 0.08,
+                          color: numberColor,
+                          height: 1.0,
                         ),
                       ),
-                    ),
+                    ],
                   ),
-                  // ── Content ──────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                    child: Stack(
-                      children: [
-                        // Kiri bawah: angka 07 + label "Mudah"
-                        Positioned(
-                          left: 0,
-                          bottom: 0,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Angka 07 dengan stroke inline
-                              Stack(
-                                children: [
-                                  Text(
-                                    '07',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 52,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 52 * 0.08,
-                                      height: 1.0,
-                                      foreground: Paint()
-                                        ..style = PaintingStyle.stroke
-                                        ..strokeWidth = 3.0
-                                        ..strokeJoin = StrokeJoin.round
-                                        ..color = const Color(
-                                          0xFF383838,
-                                        ).withValues(alpha: 0.6),
-                                    ),
-                                  ),
-                                  Text(
-                                    '07',
-                                    style: TextStyle(
-                                      fontFamily: 'Inter',
-                                      fontSize: 52,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 52 * 0.08,
-                                      color: Colors.white.withValues(
-                                        alpha: 0.55,
-                                      ),
-                                      height: 1.0,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                mission.difficulty,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.white.withValues(alpha: 0.80),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
+                  // ── Baris bawah: label + icon gembok ──────────────
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        mission.difficulty,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[400],
                         ),
-
-                        // Kanan tengah: tanda ? besar dekoratif
-                        Positioned(
-                          right: 40,
-                          top: 0,
-                          bottom: 0,
-                          child: Center(
-                            child: Text(
-                              '?',
-                              style: TextStyle(
-                                fontSize: 80,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white.withValues(alpha: 0.25),
-                                height: 1.0,
-                              ),
-                            ),
-                          ),
+                      ),
+                      Image.asset(
+                        'assets/images/icon_lock.png',
+                        width: 26,
+                        height: 26,
+                        errorBuilder: (_, __, ___) => Icon(
+                          Icons.lock_rounded,
+                          size: 22,
+                          color: Colors.grey[500],
                         ),
-
-                        // Kanan bawah: icon gembok
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            width: 34,
-                            height: 34,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.3),
-                                width: 1.5,
-                              ),
-                            ),
-                            child: Icon(
-                              Icons.lock_rounded,
-                              color: Colors.white.withValues(alpha: 0.8),
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ],
               ),
