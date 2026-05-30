@@ -967,11 +967,21 @@ class HomeView extends GetView<HomeController> {
         final assetPath = mission.number.isOdd
             ? 'assets/images/icon_fire_orange.png'
             : 'assets/images/icon_fire_pink.png';
-        return Image.asset(assetPath, width: 26, height: 26);
+        return Image.asset(
+          assetPath,
+          width: 26,
+          height: 26,
+          errorBuilder: (_, __, ___) => Icon(
+            Icons.local_fire_department_rounded,
+            size: 26,
+            color: mission.number.isOdd
+                ? const Color(0xFFFF6B00)
+                : const Color(0xFFFF69B4),
+          ),
+        );
       case _MissionStatus.inProgress:
       case _MissionStatus.locked:
       default:
-        // Tidak ada icon di pojok kanan atas untuk inProgress dan locked
         return const SizedBox(width: 26, height: 26);
     }
   }
@@ -987,13 +997,33 @@ class HomeView extends GetView<HomeController> {
           'assets/images/icon_check.png',
           width: 40,
           height: 40,
+          errorBuilder: (_, __, ___) => Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFF2E7D32), width: 2),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              color: Color(0xFF2E7D32),
+              size: 20,
+            ),
+          ),
         );
       case _MissionStatus.inProgress:
-        // Tanda tanya di bawah kanan — sesuai Figma card 03
         return Image.asset(
           'assets/images/icon_question.png',
           width: 30,
           height: 30,
+          errorBuilder: (_, __, ___) => const Text(
+            '?',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFFCC3333),
+            ),
+          ),
         );
       case _MissionStatus.locked:
       default:
@@ -1001,6 +1031,8 @@ class HomeView extends GetView<HomeController> {
           'assets/images/icon_lock.png',
           width: 26,
           height: 26,
+          errorBuilder: (_, __, ___) =>
+              Icon(Icons.lock_rounded, size: 22, color: Colors.grey[500]),
         );
     }
   }
