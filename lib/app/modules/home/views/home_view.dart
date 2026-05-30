@@ -1205,7 +1205,7 @@ class HomeView extends GetView<HomeController> {
                               '07',
                               style: TextStyle(
                                 fontFamily: 'Inter',
-                                fontSize: 36,
+                                fontSize: 42,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 36 * 0.08,
                                 height: 1.0,
@@ -1220,7 +1220,7 @@ class HomeView extends GetView<HomeController> {
                               '07',
                               style: TextStyle(
                                 fontFamily: 'Inter',
-                                fontSize: 36,
+                                fontSize: 42,
                                 fontWeight: FontWeight.w800,
                                 letterSpacing: 36 * 0.08,
                                 color:
@@ -1250,7 +1250,7 @@ class HomeView extends GetView<HomeController> {
                               height: 26,
                               errorBuilder: (_, __, ___) => Icon(
                                 Icons.lock_rounded,
-                                size: 22,
+                                size: 36,
                                 color: Colors.grey[300],
                               ),
                             ),
