@@ -117,7 +117,7 @@ class HomeView extends GetView<HomeController> {
                     child: Text(
                       'Ayo! Selesaikan kuis terbaru kami dapatkan point tambahan dari tantangan harian',
                       style: TextStyle(
-                        fontSize: 14,
+                        fontSize: 13,
                         fontWeight: FontWeight.w400,
                         color: Color(0xff714f4c),
                         height: 1.4,
@@ -751,13 +751,14 @@ class HomeView extends GetView<HomeController> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // ── Judul section ──────────────────────────────────────────
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Image.asset('assets/images/calender.png', width: 35, height: 35),
+              Image.asset('assets/images/calender.png', width: 40, height: 40),
               const SizedBox(width: 10),
               Stack(
                 clipBehavior: Clip.none,
@@ -777,7 +778,7 @@ class HomeView extends GetView<HomeController> {
                   const Text(
                     'Misi Eksplor Harian',
                     style: TextStyle(
-                      fontSize: 20,
+                      fontSize: 24,
                       fontWeight: FontWeight.w800,
                       color: Color(0xFF3D1C10),
                       letterSpacing: 0.2,
@@ -792,6 +793,7 @@ class HomeView extends GetView<HomeController> {
 
           // ── Sub-teks hadiah medali ─────────────────────────────────
           Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
                 'Selesaikan misi dan dapatkan medali:',
@@ -854,11 +856,6 @@ class HomeView extends GetView<HomeController> {
     final isInProgress = mission.status == _MissionStatus.inProgress;
     final isLocked = mission.status == _MissionStatus.locked;
 
-    // Warna angka: emas untuk completed/inProgress, abu untuk locked
-    final numberColor = (isCompleted || isInProgress)
-        ? const Color(0xFFFFD700)
-        : const Color(0xFFCCCCCC);
-
     const strokeColor = Color(0xFF3D1C10);
 
     return GestureDetector(
@@ -873,7 +870,6 @@ class HomeView extends GetView<HomeController> {
               border: Border.all(color: strokeColor, width: 2.5),
             ),
           ),
-          // ── Layer 2 (dalam): gap ~8px dari layer 1 ────────────────
           // ── Layer 2 (dalam): gap ~8px dari layer 1 ────────────────
           Positioned(
             top: 8,
@@ -943,13 +939,13 @@ class HomeView extends GetView<HomeController> {
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
                         color: const Color(0xFF3D1C10).withValues(alpha: 0.60),
-                        width: 1.0,
+                        width: 1.5,
                       ),
                     ),
                     padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         // Baris atas: Nomor
                         // SESUDAH
@@ -982,9 +978,7 @@ class HomeView extends GetView<HomeController> {
                                         0xFFFFD700,
                                       ) // emas untuk aktif/selesai
                                     : mission.imagePath != null
-                                    ? const Color(
-                                        0xFFFFF8E7,
-                                      ) // krem jika locked+ada gambar
+                                    ? const Color(0xFFFFFFFF)
                                     : const Color(
                                         0xFFCCCCCC,
                                       ), // abu jika locked+tanpa gambar
@@ -993,10 +987,11 @@ class HomeView extends GetView<HomeController> {
                             ),
                           ],
                         ),
+                        const Spacer(),
                         // Baris bawah: label difficulty + icon status
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
                               mission.difficulty,
@@ -1035,24 +1030,40 @@ class HomeView extends GetView<HomeController> {
   // locked     → icon gembok (icon_lock.png)
   Widget _buildBottomRightIcon(_DailyMission mission, {bool hasImage = false}) {
     // Warna border kotak sesuai status
-    final boxBorderColor = switch (mission.status) {
-      _MissionStatus.completed => const Color(0xFF2E7D32), // hijau
-      _MissionStatus.inProgress => const Color(0xFFCC3333), // merah
-      _MissionStatus.locked => hasImage ? Colors.white : Colors.grey.shade500,
-      _MissionStatus.special => Colors.grey.shade500,
-    };
+    // SESUDAH
+    final boxBorderColor =
+        (mission.status == _MissionStatus.locked ||
+            mission.status == _MissionStatus.special)
+        ? (hasImage ? Colors.white : Colors.grey.shade500)
+        : const Color(0xFF3D1C10); // coklat untuk completed & inProgress
 
     // Wrapper kotak transparan dengan border rounded
     Widget withBox(Widget child) {
-      return Container(
+      return SizedBox(
         width: 36,
         height: 36,
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          border: Border.all(color: boxBorderColor, width: 2),
-          borderRadius: BorderRadius.circular(8),
+        child: Stack(
+          clipBehavior: Clip.none, // ← izinkan overflow
+          alignment: Alignment.center,
+          children: [
+            // Kotak border
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                border: Border.all(color: boxBorderColor, width: 2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            // Icon lebih besar dari kotak agar overflow
+            Positioned(
+              right: -5, // ← geser ke kanan bawah seperti di Figma
+              bottom: 8,
+              child: child,
+            ),
+          ],
         ),
-        child: Center(child: child),
       );
     }
 
@@ -1061,8 +1072,8 @@ class HomeView extends GetView<HomeController> {
         return withBox(
           Image.asset(
             'assets/images/icon_check.png',
-            width: 22,
-            height: 22,
+            width: 42,
+            height: 42,
             errorBuilder: (_, __, ___) =>
                 Icon(Icons.check, size: 20, color: const Color(0xFF2E7D32)),
           ),
@@ -1072,8 +1083,8 @@ class HomeView extends GetView<HomeController> {
         return withBox(
           Image.asset(
             'assets/images/icon_question.png',
-            width: 22,
-            height: 22,
+            width: 42,
+            height: 42,
             errorBuilder: (_, __, ___) => const Text(
               '?',
               style: TextStyle(
@@ -1114,7 +1125,6 @@ class HomeView extends GetView<HomeController> {
   // ── Misi 07 — Full width special ─────────────────────────────────────────
   Widget _buildSpecialMissionCard(_DailyMission mission) {
     const strokeColor = Color(0xFF3D1C10);
-    const numberColor = Color(0xFFCCCCCC); // abu seperti locked
 
     return GestureDetector(
       onTap: () => _onMissionTap(mission),
@@ -1187,7 +1197,7 @@ class HomeView extends GetView<HomeController> {
                     padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         Stack(
                           children: [
@@ -1220,9 +1230,10 @@ class HomeView extends GetView<HomeController> {
                             ),
                           ],
                         ),
+                        const Spacer(),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
                               mission.difficulty,
