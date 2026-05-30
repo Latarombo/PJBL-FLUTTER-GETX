@@ -16,11 +16,13 @@ class _DailyMission {
   final int number;
   final String difficulty;
   final _MissionStatus status;
+  final String? imagePath;
 
   const _DailyMission({
     required this.number,
     required this.difficulty,
     required this.status,
+    this.imagePath,
   });
 }
 
@@ -35,36 +37,43 @@ class HomeView extends GetView<HomeController> {
       number: 1,
       difficulty: 'Mudah',
       status: _MissionStatus.completed,
+      imagePath: 'assets/images/tarian_adat.png',
     ),
     _DailyMission(
       number: 2,
       difficulty: 'Mudah',
       status: _MissionStatus.completed,
+      imagePath: 'assets/images/mission_02.png',
     ),
     _DailyMission(
       number: 3,
       difficulty: 'Sedang',
       status: _MissionStatus.inProgress,
+      imagePath: 'assets/images/mission_03.png',
     ),
     _DailyMission(
       number: 4,
       difficulty: 'Sedang',
       status: _MissionStatus.locked,
+      imagePath: 'assets/images/tarian_adat.png',
     ),
     _DailyMission(
       number: 5,
       difficulty: 'Sulit',
       status: _MissionStatus.locked,
+      imagePath: 'assets/images/tarian_adat.png',
     ),
     _DailyMission(
       number: 6,
       difficulty: 'Sulit',
       status: _MissionStatus.locked,
+      imagePath: 'assets/images/mission_06.png',
     ),
     _DailyMission(
       number: 7,
       difficulty: 'Sangat Sulit',
       status: _MissionStatus.special,
+      imagePath: 'assets/images/tarian_adat.png',
     ),
   ];
 
@@ -867,86 +876,149 @@ class HomeView extends GetView<HomeController> {
             ),
           ),
           // ── Layer 2 (dalam): gap ~8px dari layer 1 ────────────────
+          // ── Layer 2 (dalam): gap ~8px dari layer 1 ────────────────
           Positioned(
             top: 8,
             left: 8,
             right: 8,
             bottom: 8,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: strokeColor.withValues(alpha: isLocked ? 0.20 : 0.60),
-                  width: 1.0,
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  // ── Baris atas: Nomor + icon api (hanya completed) ─
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Angka misi
-                      // Angka misi — dengan stroke inline
-                      Stack(
-                        children: [
-                          // Layer 1: stroke (outline)
-                          Text(
-                            mission.number.toString().padLeft(2, '0'),
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 36,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 36 * 0.08,
-                              height: 1.0,
-                              foreground: Paint()
-                                ..style = PaintingStyle.stroke
-                                ..strokeWidth = 2.5
-                                ..strokeJoin = StrokeJoin.round
-                                ..color = const Color(0xFF383838),
+                  // ── Background: gambar (jika ada) atau putih biasa ──
+                  if (mission.imagePath != null)
+                    ColorFiltered(
+                      // locked → greyscale, lainnya → normal
+                      colorFilter: mission.status == _MissionStatus.locked
+                          ? const ColorFilter.matrix(<double>[
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0.2126,
+                              0.7152,
+                              0.0722,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              1,
+                              0,
+                            ])
+                          : const ColorFilter.mode(
+                              Colors.transparent,
+                              BlendMode.color,
                             ),
-                          ),
-                          // Layer 2: fill warna
-                          Text(
-                            mission.number.toString().padLeft(2, '0'),
-                            style: TextStyle(
-                              fontFamily: 'Inter',
-                              fontSize: 36,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 36 * 0.08,
-                              color: numberColor,
-                              height: 1.0,
-                            ),
-                          ),
-                        ],
+                      child: Image.asset(
+                        mission.imagePath!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            Container(color: Colors.white),
                       ),
-                      // Icon kanan atas: api untuk completed, kosong untuk lainnya
-                      _buildTopRightIcon(mission),
-                    ],
-                  ),
-                  // ── Baris bawah: label + icon status ──────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        mission.difficulty,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: isLocked
-                              ? Colors.grey[400]
-                              : const Color(0xFF714F4C),
+                    )
+                  else
+                    // Tidak ada gambar → putih biasa
+                    Container(color: Colors.white),
+
+                  // ── Overlay gelap di atas gambar ────────────────────
+                  if (mission.imagePath != null)
+                    Container(
+                      color: Colors.black.withValues(
+                        alpha: mission.status == _MissionStatus.locked
+                            ? 0.25 // locked: sedikit gelap
+                            : 0.30, // completed: gelap agar teks terbaca
+                      ),
+                    ),
+
+                  // ── Konten card (border + padding + teks) ───────────
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: const Color(
+                          0xFF3D1C10,
+                        ).withValues(alpha: isLocked ? 0.20 : 0.60),
+                        width: 1.0,
+                      ),
+                    ),
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        // Baris atas: Nomor + icon api
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Stack(
+                              children: [
+                                Text(
+                                  mission.number.toString().padLeft(2, '0'),
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 36 * 0.08,
+                                    height: 1.0,
+                                    foreground: Paint()
+                                      ..style = PaintingStyle.stroke
+                                      ..strokeWidth = 2.5
+                                      ..strokeJoin = StrokeJoin.round
+                                      ..color = const Color(0xFF383838),
+                                  ),
+                                ),
+                                Text(
+                                  mission.number.toString().padLeft(2, '0'),
+                                  style: TextStyle(
+                                    fontFamily: 'Inter',
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: 36 * 0.08,
+                                    // jika ada gambar → putih agar kontras
+                                    color: mission.imagePath != null
+                                        ? Colors.white
+                                        : numberColor,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            _buildTopRightIcon(mission),
+                          ],
                         ),
-                      ),
-                      // Icon kanan bawah: centang / tanda tanya / gembok
-                      _buildBottomRightIcon(mission),
-                    ],
+                        // Baris bawah: label difficulty + icon status
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              mission.difficulty,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                // jika ada gambar → putih, jika tidak → warna normal
+                                color: mission.imagePath != null
+                                    ? Colors.white
+                                    : (isLocked
+                                          ? Colors.grey[400]
+                                          : const Color(0xFF714F4C)),
+                              ),
+                            ),
+                            _buildBottomRightIcon(mission),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -1069,75 +1141,118 @@ class HomeView extends GetView<HomeController> {
             left: 8,
             right: 8,
             bottom: 8,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: strokeColor.withValues(alpha: 0.20),
-                  width: 1.0,
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  // ── Baris atas: angka 07 dengan stroke inline ─────
-                  Stack(
-                    children: [
-                      Text(
-                        '07',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 36,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 36 * 0.08,
-                          height: 1.0,
-                          foreground: Paint()
-                            ..style = PaintingStyle.stroke
-                            ..strokeWidth = 2.5
-                            ..strokeJoin = StrokeJoin.round
-                            ..color = const Color(0xFF383838),
-                        ),
-                      ),
-                      const Text(
-                        '07',
-                        style: TextStyle(
-                          fontFamily: 'Inter',
-                          fontSize: 36,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 36 * 0.08,
-                          color: numberColor,
-                          height: 1.0,
-                        ),
-                      ),
-                    ],
+                  // ── Background gambar dengan greyscale ──────────────
+                  ColorFiltered(
+                    colorFilter: const ColorFilter.matrix(<double>[
+                      0.2126,
+                      0.7152,
+                      0.0722,
+                      0,
+                      0,
+                      0.2126,
+                      0.7152,
+                      0.0722,
+                      0,
+                      0,
+                      0.2126,
+                      0.7152,
+                      0.0722,
+                      0,
+                      0,
+                      0,
+                      0,
+                      0,
+                      1,
+                      0,
+                    ]),
+                    child: Image.asset(
+                      mission.imagePath!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          Container(color: Colors.white),
+                    ),
                   ),
-                  // ── Baris bawah: label + icon gembok ──────────────
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        mission.difficulty,
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[400],
-                        ),
+
+                  // ── Overlay gelap ────────────────────────────────────
+                  Container(color: Colors.black.withValues(alpha: 0.25)),
+
+                  // ── Konten: border + teks ────────────────────────────
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: const Color(0xFF3D1C10).withValues(alpha: 0.20),
+                        width: 1.0,
                       ),
-                      Image.asset(
-                        'assets/images/icon_lock.png',
-                        width: 26,
-                        height: 26,
-                        errorBuilder: (_, __, ___) => Icon(
-                          Icons.lock_rounded,
-                          size: 22,
-                          color: Colors.grey[500],
+                    ),
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Stack(
+                          children: [
+                            Text(
+                              '07',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 36,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 36 * 0.08,
+                                height: 1.0,
+                                foreground: Paint()
+                                  ..style = PaintingStyle.stroke
+                                  ..strokeWidth = 2.5
+                                  ..strokeJoin = StrokeJoin.round
+                                  ..color = const Color(0xFF383838),
+                              ),
+                            ),
+                            const Text(
+                              '07',
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 36,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 36 * 0.08,
+                                color:
+                                    Colors.white, // ← putih karena ada gambar
+                                height: 1.0,
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              mission.difficulty,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color:
+                                    Colors.white, // ← putih karena ada gambar
+                              ),
+                            ),
+                            Image.asset(
+                              'assets/images/icon_lock.png',
+                              width: 26,
+                              height: 26,
+                              errorBuilder: (_, __, ___) => Icon(
+                                Icons.lock_rounded,
+                                size: 22,
+                                color: Colors.grey[300],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
