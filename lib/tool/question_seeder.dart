@@ -492,11 +492,11 @@ class QuestionSeeder {
 
     }
 
-    final musikId = catMap['Musik Nusantara'] ?? '';
+    final musikId = catMap['Musik Tradisional Nusantara'] ?? '';
     if (musikId.isNotEmpty) {
       questions.addAll(_card(
         categoryId: musikId,
-        categoryName: 'Musik Nusantara',
+        categoryName: 'Musik Tradisional Nusantara',
         cardNumber: 1,
         difficulty: 'Mudah',
         soal: [
@@ -515,7 +515,7 @@ class QuestionSeeder {
 
       questions.addAll(_card(
         categoryId: musikId,
-        categoryName: 'Musik Nusantara',
+        categoryName: 'Musik Tradisional Nusantara',
         cardNumber: 2,
         difficulty: 'Mudah',
         soal: [
@@ -534,7 +534,7 @@ class QuestionSeeder {
 
       questions.addAll(_card(
         categoryId: musikId,
-        categoryName: 'Musik Nusantara',
+        categoryName: 'Musik Tradisional Nusantara',
         cardNumber: 3,
         difficulty: 'Mudah',
         soal: [
@@ -553,7 +553,7 @@ class QuestionSeeder {
 
       questions.addAll(_card(
         categoryId: musikId,
-        categoryName: 'Musik Nusantara',
+        categoryName: 'Musik Tradisional Nusantara',
         cardNumber: 4,
         difficulty: 'Mudah',
         soal: [
@@ -572,11 +572,14 @@ class QuestionSeeder {
 
       questions.addAll(_card(
         categoryId: musikId,
-        categoryName: 'Musik Nusantara',
+        categoryName: 'Musik Tradisional Nusantara',
         cardNumber: 5,
         difficulty: 'Mudah',
         soal: [
           _soal(q: 'Alat musik pada gambar di atas dimainkan dengan cara dipukul menggunakan pemukul khusus, berasal dari Aceh dan mirip dengan gendang silinder. Alat musik ini adalah...', opts: ['Rapai', 'Geundrang', 'Tifa', 'Dol'], correct: 2, imageUrl: 'assets/quiz_category_images/musik_nusantara/musik_22.jpg'),
+          _soal(q: 'Alat musik tradisional yang terbuat dari bambu dan merupakan sejenis organ tiup dari Kalimantan Barat adalah...', opts: ['Angklung', 'Sape', 'Kledi', 'Kolintang'], correct: 2, imageUrl: 'assets/quiz_category_images/musik_nusantara/musik_23.jpg'),
+          _soal(q: 'Alat musik perkusi berukuran besar dari Bengkulu yang dimainkan dalam perayaan Tabot adalah...', opts: ['Gong', 'Tifa', 'Kendang', 'Dol'], correct: 3, imageUrl: 'assets/quiz_category_images/musik_nusantara/musik_24.jpg'),
+          _soal(q: 'Alat musik gesek khas daerah Sulawesi Selatan yang menyerupai rebab adalah...', opts: ['Gesok-Gesok', 'Biola', 'Tehyan', 'Sukong'], correct: 0, imageUrl: 'assets/quiz_category_images/musik_nusantara/musik_25.jpg'),
           _soal(q: 'Lagu daerah Sumatra Barat yang mengisahkan tentang kerinduan seorang anak kepada kampung halamannya adalah...', opts: ['Ayam Den Lapeh', 'Badindin', 'Kampuang Nan Jauh Di Mato', 'Barek Solok'], correct: 2),
           _soal(q: 'Alat musik tradisional Indonesia yang terbuat dari bambu dan menghasilkan bunyi saat digoyang adalah...', opts: ['Calung', 'Suling', 'Rindik', 'Angklung'], correct: 3),
           _soal(q: 'Tangga nada pentatonis tradisional Nusantara terdiri dari berapa nada pokok dalam satu oktaf?', opts: ['7 nada', '12 nada', '5 nada', '8 nada'], correct: 2),
@@ -784,7 +787,6 @@ class QuestionSeeder {
       ));
 
     }
-
     return questions;
   }
 
