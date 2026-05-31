@@ -244,12 +244,15 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
 
   // ── SINGLE MISSION CARD ───────────────────────────────────────────────────
   Widget _buildMissionCard(CardWithStatus card) {
-    final isCompleted = card.status == CardStatus.completed;
+    // FIX: replay diperlakukan sama seperti completed secara visual
+    final isCompleted =
+        card.status == CardStatus.completed ||
+        card.status == CardStatus.replay;
     final isAvailable = card.status == CardStatus.available;
     final isLocked = card.status == CardStatus.locked;
 
     final numberFillColor = isCompleted
-        ? const Color(0xFFFFD700) // emas jika selesai
+        ? const Color(0xFFFFD700) // emas jika selesai / replay
         : isAvailable
         ? const Color(0xFFFF6B35) // oranye jika tersedia
         : const Color(0xFFCCCCCC); // abu jika locked
@@ -428,7 +431,9 @@ class KategoriKuisView extends GetView<KategoriKuisController> {
     }
 
     switch (card.status) {
+      // FIX: replay menggunakan icon centang sama seperti completed
       case CardStatus.completed:
+      case CardStatus.replay:
         return withBox(
           Image.asset(
             'assets/images/icon_check.png',
