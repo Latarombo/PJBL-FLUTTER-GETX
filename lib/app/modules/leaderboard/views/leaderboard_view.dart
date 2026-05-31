@@ -13,7 +13,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
       backgroundColor: const Color(0xFFF9F4E4),
       body: Stack(
         children: [
-          // ── Background image ──────────────────────────────────────────────
+          // ── Layer 1: Background utama ─────────────────────────────────────
           Positioned.fill(
             child: Image.asset(
               'assets/images/bg_leaderboard.png',
@@ -21,18 +21,38 @@ class LeaderboardView extends GetView<LeaderboardController> {
             ),
           ),
 
-          // ── Konten utama: Column dengan podium fixed + list scrollable ───
+          // ── Layer 2: Kayu berlapis (podium) + papan (list) ────────────────
+          Positioned(
+            top: 220, // sesuaikan nilai ini
+            left: 4, // ← jarak dari kiri
+            right: 4, // ← jarak dari kanan
+            bottom: 0,
+            child: Image.asset(
+              'assets/images/bg_leaderboard_02.png',
+              fit: BoxFit.fill, // ← ganti ke fill agar gambar tidak terpotong
+              alignment: Alignment.topCenter,
+            ),
+          ),
+
+          // ── Konten utama ──────────────────────────────────────────────────
           SafeArea(
             child: Column(
               children: [
                 // ── 1. Header (fixed) ────────────────────────────────────
                 _buildHeader(),
 
-                // ── 2. Podium (fixed, tidak ikut scroll) ─────────────────
+                // ── 2. Podium (area kayu berlapis) ────────────────────────
                 _buildPodium(),
 
-                // ── 3. List leaderboard (hanya bagian ini yang scroll) ───
-                Expanded(child: _buildLeaderboardList()),
+                // ── 3. List leaderboard (area papan kayu) ─────────────────
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: 16,
+                    ), // ← sesuaikan dengan tepi kayu
+                    child: ClipRect(child: _buildLeaderboardList()),
+                  ),
+                ),
               ],
             ),
           ),
@@ -90,10 +110,10 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
-  // ── PODIUM (fixed, tidak bisa di-scroll) ───────────────────────────────────
+  // ── PODIUM ─────────────────────────────────────────────────────────────────
   Widget _buildPodium() {
     return SizedBox(
-      height: 340,
+      height: 280,
       child: Obx(() {
         final top = controller.top3;
 
@@ -135,22 +155,14 @@ class LeaderboardView extends GetView<LeaderboardController> {
           );
         }
 
+        // Podium — awan dihapus, langsung tampilkan tiga item
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: SizedBox(
-                height: 210,
-                width: double.infinity,
-                child: Image.asset('assets/images/cloud.png', fit: BoxFit.fill),
-              ),
-            ),
+            // Peringkat 2 — kiri
             Positioned(
               left: 20,
-              bottom: 40,
+              bottom: 0,
               child: _buildPodiumItem(
                 rank: 2,
                 username: top[1].username,
@@ -160,10 +172,11 @@ class LeaderboardView extends GetView<LeaderboardController> {
                 podiumColor: const Color(0xFFC0C0C0),
               ),
             ),
+            // Peringkat 1 — tengah (lebih tinggi)
             Positioned(
               left: 0,
               right: 0,
-              bottom: 100,
+              bottom: 40,
               child: _buildPodiumItem(
                 rank: 1,
                 username: top[0].username,
@@ -174,9 +187,10 @@ class LeaderboardView extends GetView<LeaderboardController> {
                 isFirst: true,
               ),
             ),
+            // Peringkat 3 — kanan
             Positioned(
               right: 20,
-              bottom: 40,
+              bottom: 0,
               child: _buildPodiumItem(
                 rank: 3,
                 username: top[2].username,
@@ -321,7 +335,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
-  // ── LIST LEADERBOARD (hanya bagian ini yang bisa di-scroll) ───────────────
+  // ── LIST LEADERBOARD ───────────────────────────────────────────────────────
   Widget _buildLeaderboardList() {
     return Obx(() {
       if (controller.isLoading.value) {
@@ -337,7 +351,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
       }
 
       return ListView.builder(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 80),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 80),
         physics: const BouncingScrollPhysics(),
         itemCount: controller.leaderboardData.length,
         itemBuilder: (_, i) =>
@@ -453,7 +467,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
     );
   }
 
-  // ── CARD USER SAAT INI (fixed di bawah) ───────────────────────────────────
+  // ── CARD USER SAAT INI ─────────────────────────────────────────────────────
   Widget _buildCurrentUserCard() {
     return Obx(() {
       final userEntry = controller.currentUserEntry;
