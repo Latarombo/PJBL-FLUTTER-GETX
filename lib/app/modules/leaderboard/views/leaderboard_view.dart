@@ -340,7 +340,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
       }
 
       return ListView.builder(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 80),
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 60),
         physics: const BouncingScrollPhysics(),
         itemCount: controller.leaderboardData.length,
         itemBuilder: (_, i) =>
@@ -355,19 +355,19 @@ class LeaderboardView extends GetView<LeaderboardController> {
 
     if (entry.rank == 1) {
       cardGradient = const LinearGradient(
-        colors: [Color(0xffffe802), Color(0xffffce00)],
+        colors: [Color(0xffffe802), Color.fromARGB(255, 238, 191, 0)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       );
     } else if (entry.rank == 2) {
       cardGradient = const LinearGradient(
-        colors: [Color(0xffebecf0), Color(0xffbec0c2)],
+        colors: [Color(0xffebecf0), Color.fromARGB(255, 168, 171, 173)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       );
     } else if (entry.rank == 3) {
       cardGradient = const LinearGradient(
-        colors: [Color(0xffc18563), Color(0xff9c7a3c)],
+        colors: [Color(0xffc18563), Color.fromARGB(255, 167, 126, 52)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       );
@@ -376,7 +376,7 @@ class LeaderboardView extends GetView<LeaderboardController> {
     }
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       decoration: BoxDecoration(
         gradient: cardGradient,
