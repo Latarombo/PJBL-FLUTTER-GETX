@@ -1450,7 +1450,7 @@ C: Kendang Ageng
 
 D: Bedug
 
-: \[assets\\quiz_category_images\\musik_nusantara\\musik_21.jpg\] Gambar di atas menunjukkan alat musik tradisional sejenis kecapi yang berasal dari Sulawesi Selatan. Nama alat musik tersebut adalah...
+Q: \[assets\\quiz_category_images\\musik_nusantara\\musik_21.jpg\] Gambar di atas menunjukkan alat musik tradisional sejenis kecapi yang berasal dari Sulawesi Selatan. Nama alat musik tersebut adalah...
 
 A: Sampe
 

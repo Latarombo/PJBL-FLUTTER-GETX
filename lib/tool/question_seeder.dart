@@ -1942,6 +1942,13 @@ class QuestionSeeder {
           difficulty: 'Mudah',
           soal: [
             _soal(
+              q: 'Gambar di atas menunjukkan alat musik tradisional sejenis kecapi yang berasal dari Sulawesi Selatan. Nama alat musik tersebut adalah...',
+              opts: ['Sampe', 'Sitera', 'Kacaping', 'Celempung'],
+              correct: 2,
+              imageUrl:
+                  'assets/quiz_category_images/musik_nusantara/musik_21.jpg',
+            ),
+            _soal(
               q: 'Alat musik pada gambar di atas dimainkan dengan cara dipukul menggunakan pemukul khusus, berasal dari Aceh dan mirip dengan gendang silinder. Alat musik ini adalah...',
               opts: ['Rapai', 'Geundrang', 'Tifa', 'Dol'],
               correct: 2,
