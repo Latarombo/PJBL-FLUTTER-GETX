@@ -1,14 +1,19 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class QuestionModel {
-  final String id;            // Firestore document ID (auto-generated)
-  final String categoryId;    // ref ke categories/{id}  ← "JV2plSlwye9y74tE87or"
-  final String categoryName;  // "Senjata Tradisional"
-  final String question;      // teks soal
-  final List<String> options; // ["A. Keris", "B. Mandau", ...]
-  final int correctIndex;     // index jawaban benar (0-based) ← correctIndex
-  final String? imageUrl;     // path assets atau null
+  final String id;
+  final String categoryId;
+  final String categoryName;
+  final String question;
+  final List<String> options;
+  final int correctIndex;
+  final String? imageUrl;
   final bool isActive;
+
+  /// 'Mudah' / 'Sedang' / 'Sulit'
+  /// Default 'Mudah' agar kompatibel dengan data lama
+  final String difficulty;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -21,11 +26,11 @@ class QuestionModel {
     required this.correctIndex,
     this.imageUrl,
     this.isActive = true,
+    this.difficulty = 'Mudah',
     this.createdAt,
     this.updatedAt,
   });
 
-  // Helper: cek apakah soal punya gambar
   bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
 
   factory QuestionModel.fromFirestore(DocumentSnapshot doc) {
@@ -35,11 +40,11 @@ class QuestionModel {
       categoryId: data['categoryId'] ?? '',
       categoryName: data['categoryName'] ?? '',
       question: data['question'] ?? '',
-      // Firestore menyimpan options sebagai List<dynamic> → cast ke List<String>
       options: List<String>.from(data['options'] ?? []),
       correctIndex: (data['correctIndex'] as num?)?.toInt() ?? 0,
       imageUrl: data['imageUrl'] as String?,
       isActive: data['isActive'] ?? true,
+      difficulty: data['difficulty'] as String? ?? 'Mudah',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -53,12 +58,9 @@ class QuestionModel {
     'correctIndex': correctIndex,
     'imageUrl': imageUrl,
     'isActive': isActive,
+    'difficulty': difficulty,
     'createdAt': FieldValue.serverTimestamp(),
     'updatedAt': FieldValue.serverTimestamp(),
-    'stats': {
-      'timesAnswered': 0,
-      'timesWrong': 0,
-      'wrongRate': 0.0,
-    },
+    'stats': {'timesAnswered': 0, 'timesWrong': 0, 'wrongRate': 0.0},
   };
 }

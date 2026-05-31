@@ -1,35 +1,34 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_instance/src/extension_instance.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_navigation/src/snackbar/snackbar.dart';
-import 'package:get/get_rx/src/rx_types/rx_types.dart';
-import 'package:get/get_state_manager/src/simple/get_controllers.dart';
+import 'package:get/get.dart';
 import 'package:santarana/app/routes/app_pages.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
 import 'package:santarana/shared/models/category_model.dart';
+import 'package:santarana/shared/models/category_progress_model.dart';
 import 'package:santarana/shared/models/progress_model.dart';
 import 'package:santarana/shared/models/question_model.dart';
 import 'package:santarana/shared/models/quiz_session_model.dart';
+import 'package:santarana/shared/services/category_progress_service.dart';
 import 'package:santarana/shared/services/leaderboard_service.dart';
 import 'package:santarana/shared/services/progress_service.dart';
 import 'package:santarana/shared/services/quiz_result_service.dart';
 import 'package:santarana/shared/services/quiz_service.dart';
+import 'package:santarana/shared/theme/app_colors.dart';
 
 class QuizController extends GetxController {
   final QuizService _quizService = QuizService();
   final QuizResultService _resultService = QuizResultService();
   final ProgressService _progressService = ProgressService();
   final LeaderboardService _leaderboardService = LeaderboardService();
+  final CategoryProgressService _cardProgressService =
+      CategoryProgressService();
 
-  // AuthController diakses via Get.find — sudah di-inject di main.dart
   AuthController get _authController => Get.find<AuthController>();
 
   // ─── STATE ─────────────────────────────────────────────────────────────────
   final isLoading = false.obs;
-  final isSaving = false.obs; // loading saat simpan hasil ke Firestore
+  final isSaving = false.obs;
   final questions = <QuestionModel>[].obs;
   final categoryName = ''.obs;
 
@@ -40,84 +39,113 @@ class QuizController extends GetxController {
   final totalPoints = 0.obs;
   final streak = 0.obs;
 
-  // Simpan referensi CategoryModel untuk dipakai saat _saveResults
+  // ─── Card-based quiz state ──────────────────────────────────────────────────
+  /// Card number (1-10) jika quiz dari KategoriKuisView, null jika dari HomeView
+  int? _cardNumber;
+  String? _categoryId;
+  int? _totalSoalInCard;
+
+  /// Soal yang sudah benar di sesi sebelumnya (untuk card-based)
+  List<String> _previouslyCorrectIds = [];
+
+  /// Map: questionId → benar/salah untuk sesi ini
+  final Map<String, bool> _answeredCorrectly = {};
+
+  /// Poin yang benar-benar akan dikreditkan (hanya soal baru yang benar)
+  int _newPointsEarned = 0;
+
   CategoryModel? _currentCategory;
-
-  // Catat waktu mulai sesi
   DateTime _startedAt = DateTime.now();
-
   Timer? _autoAdvanceTimer;
 
   // ─── GETTERS ───────────────────────────────────────────────────────────────
-
   QuestionModel? get currentQuestion =>
       questions.isNotEmpty ? questions[currentQuestionIndex.value] : null;
 
   int get totalQuestions => questions.length;
+
+  /// Apakah ini card-based quiz (dari KategoriKuisView)
+  bool get isCardBased => _cardNumber != null;
 
   // ─── LIFECYCLE ─────────────────────────────────────────────────────────────
   @override
   void onInit() {
     super.onInit();
     final args = Get.arguments as Map<String, dynamic>?;
-    final category = args?['category'] as String? ?? '';
-    categoryName.value = category;
-    fetchQuestions(category);
+    _initFromArgs(args);
   }
 
-  // ─── FETCH ─────────────────────────────────────────────────────────────────
+  void _initFromArgs(Map<String, dynamic>? args) {
+    final category = args?['category'] as String? ?? '';
+    categoryName.value = category;
 
+    // Card-based quiz: questions sudah dikirim dari KategoriKuisController
+    final preloadedQuestions = args?['questions'] as List<QuestionModel>?;
+    _cardNumber = args?['cardNumber'] as int?;
+    _categoryId = args?['categoryId'] as String?;
+    _totalSoalInCard = args?['totalSoal'] as int?;
+    _previouslyCorrectIds = List<String>.from(
+      args?['previouslyCorrectIds'] ?? [],
+    );
+
+    if (preloadedQuestions != null && preloadedQuestions.isNotEmpty) {
+      // Mode: soal sudah diload oleh KategoriKuisController
+      questions.value = preloadedQuestions;
+      _resetState();
+      _startedAt = DateTime.now();
+      // Fetch category model di background (untuk save hasil)
+      _fetchCategoryModel(category);
+    } else {
+      // Mode: fetch soal sendiri (dari HomeView atau route langsung)
+      fetchQuestions(category);
+    }
+  }
+
+  // ─── FETCH (mode legacy dari HomeView) ────────────────────────────────────
   Future<void> fetchQuestions(String name) async {
     try {
       isLoading.value = true;
-
       final category = await _quizService.getCategoryByName(name);
       if (category == null) {
-        Get.snackbar(
+        _showSnackbar(
           'Error',
           'Kategori "$name" tidak ditemukan',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
+          isError: true,
         );
         return;
       }
-
-      // Simpan referensi kategori untuk dipakai di _saveResults
       _currentCategory = category;
+      _categoryId ??= category.id;
 
       final result = await _quizService.getQuestionsByCategoryId(category.id);
       if (result.isEmpty) {
-        Get.snackbar(
+        _showSnackbar(
           'Info',
           'Belum ada soal untuk kategori ini',
-          backgroundColor: Colors.orange,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
+          isError: false,
         );
         return;
       }
 
       questions.value = result;
       _resetState();
-
-      // Catat waktu mulai setelah soal berhasil dimuat
       _startedAt = DateTime.now();
     } catch (e) {
-      Get.snackbar(
-        'Error',
-        'Gagal memuat soal',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      _showSnackbar('Error', 'Gagal memuat soal', isError: true);
     } finally {
       isLoading.value = false;
     }
   }
 
-  // ─── QUIZ LOGIC ────────────────────────────────────────────────────────────
+  Future<void> _fetchCategoryModel(String name) async {
+    try {
+      _currentCategory = await _quizService.getCategoryByName(name);
+    } catch (_) {
+      // non-critical
+    }
+  }
 
+  // ─── QUIZ LOGIC ────────────────────────────────────────────────────────────
   void selectAnswer(int index) {
     if (!isAnswered.value) {
       selectedAnswerIndex.value = index;
@@ -126,13 +154,10 @@ class QuizController extends GetxController {
 
   void handleNext() {
     if (selectedAnswerIndex.value == null) {
-      Get.snackbar(
+      _showSnackbar(
         'Peringatan',
         'Silakan pilih jawaban terlebih dahulu',
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-        margin: const EdgeInsets.all(16),
+        isError: false,
       );
       return;
     }
@@ -140,11 +165,23 @@ class QuizController extends GetxController {
     isAnswered.value = true;
 
     final correct = currentQuestion?.correctIndex ?? -1;
-    if (selectedAnswerIndex.value == correct) {
+    final isCorrect = selectedAnswerIndex.value == correct;
+    final questionId = currentQuestion?.id ?? '';
+
+    // Catat hasil soal ini
+    _answeredCorrectly[questionId] = isCorrect;
+
+    if (isCorrect) {
       correctAnswers.value++;
       streak.value++;
-      final bonus = streak.value >= 3 ? 5 : 0;
-      totalPoints.value += 10 + bonus;
+
+      // Hitung poin hanya jika soal ini belum pernah benar sebelumnya
+      if (!_previouslyCorrectIds.contains(questionId)) {
+        final bonus = streak.value >= 3 ? 5 : 0;
+        final pointsThisQuestion = 10 + bonus;
+        totalPoints.value += pointsThisQuestion;
+        _newPointsEarned += pointsThisQuestion;
+      }
     } else {
       streak.value = 0;
     }
@@ -158,43 +195,37 @@ class QuizController extends GetxController {
       selectedAnswerIndex.value = null;
       isAnswered.value = false;
     } else {
-      // Quiz selesai → simpan hasil dulu, baru tampilkan dialog
       _saveResultsAndShowDialog();
     }
   }
 
   // ─── SIMPAN HASIL ──────────────────────────────────────────────────────────
-
-  /// Simpan hasil ke Firestore, lalu tampilkan dialog hasil
   Future<void> _saveResultsAndShowDialog() async {
     final uid = _authController.uid;
     final category = _currentCategory;
 
-    // Hitung nilai akhir
     final correct = correctAnswers.value;
     final total = totalQuestions;
-    final points = totalPoints.value;
     final percentage = total > 0 ? (correct / total) * 100 : 0.0;
     final grade = QuizSessionModel.calculateGrade(percentage);
 
-    // Tampilkan dialog dulu — simpan di background
+    // Tampilkan dialog terlebih dahulu
     _showResultDialog(
       correct: correct,
       total: total,
-      points: points,
+      points: _newPointsEarned,
       percentage: percentage,
       grade: grade,
     );
 
-    // Simpan ke Firestore di background (tidak perlu await di sini)
-    if (uid != null && category != null) {
+    // Simpan di background
+    if (uid != null) {
       _saveResults(
         uid: uid,
         category: category,
         correct: correct,
         total: total,
         percentage: percentage,
-        points: points,
         grade: grade,
       );
     }
@@ -202,72 +233,94 @@ class QuizController extends GetxController {
 
   Future<void> _saveResults({
     required String uid,
-    required CategoryModel category,
+    required CategoryModel? category,
     required int correct,
     required int total,
     required double percentage,
-    required int points,
     required String grade,
   }) async {
     try {
       isSaving.value = true;
 
-      final session = QuizSessionModel(
-        userId: uid,
-        categoryId: category.id,
-        categoryName: category.name,
-        totalQuestions: total,
-        correctAnswers: correct,
-        wrongAnswers: total - correct,
-        pointsEarned: points,
-        percentage: percentage,
-        grade: grade,
-        streak: streak.value,
-        isCompleted: true,
-        startedAt: _startedAt,
-        completedAt: DateTime.now(),
-      );
+      final futures = <Future>[];
 
-      final progress = ProgressModel(
-        categoryId: category.id,
-        categoryName: category.name,
-        imagePath: category.imagePath,
-        bestScore: percentage.round(),
-        lastScore: percentage.round(),
-        attempts: 1, // akan diakumulasi di ProgressService
-        lastProgress: total,
-        totalQuestions: total,
-        isCompleted: true,
-        lastPlayedAt: DateTime.now(),
-      );
+      // 1. Simpan progress card (jika card-based)
+      if (isCardBased && _categoryId != null && _cardNumber != null) {
+        futures.add(
+          _cardProgressService.saveCardProgress(
+            uid: uid,
+            categoryId: _categoryId!,
+            cardNumber: _cardNumber!,
+            totalSoalInCard: _totalSoalInCard ?? total,
+            answeredCorrectly: _answeredCorrectly,
+            existingProgress: null, // service akan fetch sendiri jika perlu
+          ),
+        );
+      }
 
-      // Simpan paralel untuk efisiensi
-      await Future.wait([
-        _resultService.saveQuizSession(session),
-        _resultService.addPointsToUser(uid, points),
-        _progressService.saveProgress(uid, category.id, progress),
-        _leaderboardService.updateLeaderboardEntry(
-          uid,
-          _authController.username,
-          _authController.totalPoints +
-              points, // totalPoints sebelum refresh + poin baru
-          avatarUrl: _authController.avatarUrl,
-        ),
-      ]);
+      // 2. Tambah poin ke user (hanya poin baru)
+      if (_newPointsEarned > 0) {
+        futures.add(_resultService.addPointsToUser(uid, _newPointsEarned));
 
-      // Refresh data user di AuthController agar totalPoints di HomeView update
+        // 3. Update leaderboard
+        futures.add(
+          _leaderboardService.updateLeaderboardEntry(
+            uid,
+            _authController.username,
+            _authController.totalPoints + _newPointsEarned,
+            avatarUrl: _authController.avatarUrl,
+          ),
+        );
+      }
+
+      // 4. Simpan sesi quiz (untuk riwayat)
+      if (category != null) {
+        final session = QuizSessionModel(
+          userId: uid,
+          categoryId: category.id,
+          categoryName: category.name,
+          totalQuestions: total,
+          correctAnswers: correct,
+          wrongAnswers: total - correct,
+          pointsEarned: _newPointsEarned,
+          percentage: percentage,
+          grade: grade,
+          streak: streak.value,
+          isCompleted: true,
+          startedAt: _startedAt,
+          completedAt: DateTime.now(),
+        );
+        futures.add(_resultService.saveQuizSession(session));
+
+        // 5. Simpan progress kategori (untuk "Aktivitas Terakhir" di Home)
+        final progressModel = ProgressModel(
+          categoryId: category.id,
+          categoryName: category.name,
+          imagePath: category.imagePath,
+          bestScore: percentage.round(),
+          lastScore: percentage.round(),
+          attempts: 1,
+          lastProgress: total,
+          totalQuestions: total,
+          isCompleted: percentage >= 100,
+          lastPlayedAt: DateTime.now(),
+        );
+        futures.add(
+          _progressService.saveProgress(uid, category.id, progressModel),
+        );
+      }
+
+      await Future.wait(futures);
       await _authController.refreshUser();
     } catch (e) {
-      // Non-critical untuk UX — dialog sudah tampil, simpan gagal tidak crash
-      // ignore: avoid_print
-      print('Warning: gagal menyimpan hasil quiz: $e');
+      // Non-critical
+      debugPrint('Warning: gagal menyimpan hasil quiz: $e');
     } finally {
       isSaving.value = false;
     }
   }
 
   // ─── DIALOG HASIL ──────────────────────────────────────────────────────────
-
   void _showResultDialog({
     required int correct,
     required int total,
@@ -275,6 +328,11 @@ class QuizController extends GetxController {
     required double percentage,
     required String grade,
   }) {
+    // Apakah semua soal benar (card completed)?
+    final isPerfect = percentage >= 100;
+    // Apakah ada poin baru?
+    final hasNewPoints = points > 0;
+
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -283,65 +341,140 @@ class QuizController extends GetxController {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              // Ikon hasil
               Container(
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: percentage >= 70
+                  color: isPerfect
                       ? Colors.green.withValues(alpha: 0.1)
-                      : Colors.orange.withValues(alpha: 0.1),
+                      : percentage >= 70
+                      ? Colors.orange.withValues(alpha: 0.1)
+                      : Colors.red.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  percentage >= 70 ? Icons.emoji_events : Icons.refresh,
+                  isPerfect
+                      ? Icons.emoji_events_rounded
+                      : percentage >= 70
+                      ? Icons.thumb_up_rounded
+                      : Icons.refresh_rounded,
                   size: 40,
-                  color: percentage >= 70 ? Colors.green : Colors.orange,
+                  color: isPerfect
+                      ? const Color(0xFFFFD700)
+                      : percentage >= 70
+                      ? Colors.orange
+                      : Colors.red,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+
+              // Grade
               Text(
                 grade,
                 style: const TextStyle(
-                  fontSize: 24,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
+                  color: Color(0xFF270F0F),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Skor
+              Text(
+                'Jawaban Benar: $correct/$total',
+                style: TextStyle(fontSize: 16, color: Colors.grey[700]),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${percentage.toStringAsFixed(0)}%',
+                style: const TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF270F0F),
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                'Skor: $correct/$total',
-                style: TextStyle(fontSize: 18, color: Colors.grey[700]),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Persentase: ${percentage.toStringAsFixed(1)}%',
-                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 8),
+
+              // Info poin
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
-                  vertical: 8,
+                  vertical: 10,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFB347).withValues(alpha: 0.2),
+                  color: hasNewPoints
+                      ? const Color(0xFFFFB347).withValues(alpha: 0.15)
+                      : Colors.grey.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(Icons.star, color: Color(0xFFFFB347), size: 20),
+                    Icon(
+                      Icons.star_rounded,
+                      color: hasNewPoints
+                          ? const Color(0xFFFFB347)
+                          : Colors.grey,
+                      size: 20,
+                    ),
                     const SizedBox(width: 8),
                     Text(
-                      '+$points Poin',
-                      style: const TextStyle(
-                        fontSize: 16,
+                      hasNewPoints
+                          ? '+$points Poin'
+                          : 'Sudah pernah benar — +0 Poin',
+                      style: TextStyle(
+                        fontSize: 15,
                         fontWeight: FontWeight.bold,
+                        color: hasNewPoints
+                            ? const Color(0xFF270F0F)
+                            : Colors.grey[600],
                       ),
                     ),
                   ],
                 ),
               ),
+
+              // Info card unlock jika perfect
+              if (isPerfect && isCardBased) ...[
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.green.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.lock_open_rounded,
+                        color: Color(0xFF2E7D32),
+                        size: 18,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Card ${(_cardNumber ?? 0) + 1} terbuka!',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF2E7D32),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 24),
+
+              // Tombol
               Row(
                 children: [
                   Expanded(
@@ -356,16 +489,13 @@ class QuizController extends GetxController {
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                      child: const Text('Ulang Quiz'),
+                      child: const Text('Ulang'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        // Kembali ke APP dan trigger refresh progress di HomeController
-                        Get.offNamedUntil(Routes.APP, (route) => false);
-                      },
+                      onPressed: () => Get.back(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1A2332),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -390,10 +520,18 @@ class QuizController extends GetxController {
   }
 
   // ─── RESET & RESTART ───────────────────────────────────────────────────────
-
   void resetQuiz() {
     _autoAdvanceTimer?.cancel();
-    fetchQuestions(categoryName.value);
+    _answeredCorrectly.clear();
+    _newPointsEarned = 0;
+
+    if (isCardBased) {
+      // Reload dari arguments yang sama
+      _resetState();
+      _startedAt = DateTime.now();
+    } else {
+      fetchQuestions(categoryName.value);
+    }
   }
 
   void showRestartDialog() {
@@ -405,7 +543,7 @@ class QuizController extends GetxController {
           style: TextStyle(fontWeight: FontWeight.bold),
         ),
         content: Text(
-          'Semua progress akan hilang. Apakah Anda yakin ingin mengulang quiz dari awal?',
+          'Semua progress sesi ini akan hilang. Lanjutkan?',
           style: TextStyle(color: Colors.grey[700]),
         ),
         actions: [
@@ -441,6 +579,19 @@ class QuizController extends GetxController {
     correctAnswers.value = 0;
     totalPoints.value = 0;
     streak.value = 0;
+    _answeredCorrectly.clear();
+    _newPointsEarned = 0;
+  }
+
+  void _showSnackbar(String title, String message, {required bool isError}) {
+    Get.snackbar(
+      title,
+      message,
+      backgroundColor: isError ? Colors.orange : Colors.green,
+      colorText: Colors.white,
+      snackPosition: SnackPosition.BOTTOM,
+      margin: const EdgeInsets.all(16),
+    );
   }
 
   @override
