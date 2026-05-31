@@ -14,6 +14,10 @@ class QuestionModel {
   /// Default 'Mudah' agar kompatibel dengan data lama
   final String difficulty;
 
+  /// Nomor card tempat soal ini digunakan (1-10).
+  /// Null berarti data lama yang belum di-assign ke card tertentu.
+  final int? cardNumber;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -27,6 +31,7 @@ class QuestionModel {
     this.imageUrl,
     this.isActive = true,
     this.difficulty = 'Mudah',
+    this.cardNumber,
     this.createdAt,
     this.updatedAt,
   });
@@ -45,6 +50,7 @@ class QuestionModel {
       imageUrl: data['imageUrl'] as String?,
       isActive: data['isActive'] ?? true,
       difficulty: data['difficulty'] as String? ?? 'Mudah',
+      cardNumber: (data['cardNumber'] as num?)?.toInt(),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate(),
     );
@@ -59,6 +65,7 @@ class QuestionModel {
     'imageUrl': imageUrl,
     'isActive': isActive,
     'difficulty': difficulty,
+    'cardNumber': cardNumber,
     'createdAt': FieldValue.serverTimestamp(),
     'updatedAt': FieldValue.serverTimestamp(),
     'stats': {'timesAnswered': 0, 'timesWrong': 0, 'wrongRate': 0.0},

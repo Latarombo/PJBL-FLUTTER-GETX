@@ -3,10 +3,9 @@ import 'package:get/get.dart';
 import 'package:santarana/app/routes/app_pages.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
 import 'package:santarana/shared/models/category_model.dart';
-import 'package:santarana/shared/models/question_model.dart';
+import 'package:santarana/shared/models/category_progress_model.dart';
 import 'package:santarana/shared/services/quiz_service.dart';
 import 'package:santarana/shared/services/category_progress_service.dart';
-import 'package:santarana/shared/models/category_progress_model.dart';
 
 class KategoriKuisController extends GetxController {
   final QuizService _quizService = QuizService();
@@ -20,9 +19,6 @@ class KategoriKuisController extends GetxController {
   final isLoading = true.obs;
   final cards = <CardWithStatus>[].obs;
 
-  // Semua soal per level (cached setelah fetch)
-  final _allQuestions = <QuestionModel>[];
-
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   @override
   void onInit() {
@@ -32,7 +28,10 @@ class KategoriKuisController extends GetxController {
     _load();
   }
 
-  // ── Load: fetch category + questions + progress ────────────────────────────
+  // ── Load: fetch category + progress ───────────────────────────────────────
+  //
+  // Soal TIDAK di-fetch semua di sini.
+  // Setiap card fetch soalnya sendiri saat di-tap (_startQuiz).
   Future<void> _load() async {
     try {
       isLoading.value = true;
@@ -44,15 +43,7 @@ class KategoriKuisController extends GetxController {
         return;
       }
 
-      // 2. Fetch semua soal aktif untuk kategori ini
-      final questions = await _quizService.getQuestionsByCategoryId(
-        _categoryModel!.id,
-      );
-      _allQuestions
-        ..clear()
-        ..addAll(questions);
-
-      // 3. Fetch progress user dari Firestore
+      // 2. Fetch progress user dari Firestore
       await _refreshProgress();
     } catch (e) {
       _showError('Gagal memuat data');
@@ -61,7 +52,7 @@ class KategoriKuisController extends GetxController {
     }
   }
 
-  // ── Refresh progress (dipanggil setelah quiz selesai) ────────────────────
+  // ── Refresh progress ──────────────────────────────────────────────────────
   Future<void> _refreshProgress() async {
     final uid = _auth.uid;
     if (uid == null || _categoryModel == null) return;
@@ -90,7 +81,6 @@ class KategoriKuisController extends GetxController {
         );
         break;
 
-      // Card yang sudah selesai → bisa dimainkan ulang, poin = 0
       case CardStatus.replay:
         _showReplayConfirmation(card);
         break;
@@ -99,8 +89,6 @@ class KategoriKuisController extends GetxController {
         _startQuiz(card);
         break;
 
-      // completed tidak akan muncul dari buildCardsWithStatus,
-      // tapi tetap di-handle untuk keamanan
       case CardStatus.completed:
         _startQuiz(card);
         break;
@@ -194,48 +182,61 @@ class KategoriKuisController extends GetxController {
     );
   }
 
-  // ── Mulai quiz untuk card ini ─────────────────────────────────────────────
-  void _startQuiz(CardWithStatus card) {
+  // ── Mulai quiz: fetch soal by cardNumber dulu ─────────────────────────────
+  Future<void> _startQuiz(CardWithStatus card) async {
     if (_categoryModel == null) return;
 
-    // Filter soal berdasarkan level card
-    final levelQuestions = _progressService.filterByLevel(
-      _allQuestions,
-      card.level,
-    );
+    // Tampilkan loading ringan di atas card
+    isLoading.value = true;
 
-    // Ambil sejumlah soal sesuai totalSoal card, shuffle
-    final soalUntukCard = levelQuestions.take(card.totalSoal).toList();
-
-    if (soalUntukCard.isEmpty) {
-      Get.snackbar(
-        'Info',
-        'Belum ada soal level ${card.level} untuk kategori ini',
-        backgroundColor: Colors.orange,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
+    try {
+      // Fetch soal khusus untuk card ini dari Firestore
+      final result = await _quizService.getQuestionsByCard(
+        categoryId: _categoryModel!.id,
+        cardNumber: card.cardNumber,
+        requiredCount: card.totalSoal,
       );
-      return;
-    }
 
-    // Navigasi ke QuizView dengan argument lengkap
-    Get.toNamed(
-      Routes.QUIZ,
-      arguments: {
-        'category': categoryName,
-        'categoryId': _categoryModel!.id,
-        'cardNumber': card.cardNumber,
-        'level': card.level,
-        'totalSoal': card.totalSoal,
-        'questions': soalUntukCard,
-        // previouslyCorrectIds dikirim agar QuizController tahu soal mana
-        // yang sudah benar → tidak menambah poin untuk soal itu
-        'previouslyCorrectIds': card.previouslyCorrectIds,
-      },
-    )?.then((_) {
-      // Refresh setelah kembali dari quiz
-      _refreshProgress();
-    });
+      final questions = result['questions'] as List;
+      final isEnough = result['isEnough'] as bool;
+      final found = result['found'] as int;
+
+      // Validasi: soal harus cukup
+      if (!isEnough) {
+        Get.snackbar(
+          '⚠️ Soal Belum Lengkap',
+          'Card ${_padNumber(card.cardNumber)} membutuhkan ${card.totalSoal} soal, '
+              'tapi baru tersedia $found soal. Hubungi admin.',
+          backgroundColor: const Color(0xFFE65100),
+          colorText: Colors.white,
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 14,
+          duration: const Duration(seconds: 4),
+        );
+        return;
+      }
+
+      // Navigasi ke QuizView dengan soal yang sudah di-fetch
+      Get.toNamed(
+        Routes.QUIZ,
+        arguments: {
+          'category': categoryName,
+          'categoryId': _categoryModel!.id,
+          'cardNumber': card.cardNumber,
+          'level': card.level,
+          'totalSoal': card.totalSoal,
+          'questions': questions,
+          'previouslyCorrectIds': card.previouslyCorrectIds,
+        },
+      )?.then((_) {
+        _refreshProgress();
+      });
+    } catch (e) {
+      _showError('Gagal memuat soal, coba lagi');
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   // ── Helper ─────────────────────────────────────────────────────────────────

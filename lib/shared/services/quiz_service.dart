@@ -20,8 +20,7 @@ class QuizService {
     }
   }
 
-  /// Ambil satu kategori berdasarkan nama → dipakai QuizController saat tap kategori
-  /// Cocok dengan nama yang dikirim dari HomeView (e.g. "Tarian Tradisional")
+  /// Ambil satu kategori berdasarkan nama → dipakai QuizController
   Future<CategoryModel?> getCategoryByName(String name) async {
     try {
       final snapshot = await _firestore
@@ -38,10 +37,11 @@ class QuizService {
 
   // ─── QUESTIONS ─────────────────────────────────────────────────────────────
 
-  /// Ambil soal berdasarkan categoryId → dipakai QuizController
-  /// Query menggunakan categoryId (document ID dari categories)
-  /// Contoh: categoryId = "JV2plSlwye9y74tE87or"
-  Future<List<QuestionModel>> getQuestionsByCategoryId(String categoryId) async {
+  /// Ambil semua soal aktif berdasarkan categoryId.
+  /// Dipakai di mode lama (HomeView) dan sebagai fallback.
+  Future<List<QuestionModel>> getQuestionsByCategoryId(
+    String categoryId,
+  ) async {
     try {
       final snapshot = await _firestore
           .collection('questions')
@@ -49,15 +49,47 @@ class QuizService {
           .where('isActive', isEqualTo: true)
           .get();
 
-      final questions = snapshot.docs
-          .map(QuestionModel.fromFirestore)
-          .toList();
+      final questions = snapshot.docs.map(QuestionModel.fromFirestore).toList();
 
-      // Shuffle agar urutan soal acak setiap sesi baru
       questions.shuffle();
       return questions;
     } catch (e) {
       throw Exception('Gagal mengambil soal: $e');
+    }
+  }
+
+  /// Ambil soal untuk card tertentu berdasarkan categoryId + cardNumber.
+  ///
+  /// Return map:
+  ///   - 'questions' : List<QuestionModel> — soal yang ditemukan (sudah di-shuffle)
+  ///   - 'isEnough'  : bool — true jika jumlah soal >= [requiredCount]
+  ///   - 'found'     : int  — jumlah soal yang ditemukan di Firestore
+  ///
+  /// Tidak melempar Exception agar controller bisa handle snackbar sendiri.
+  Future<Map<String, dynamic>> getQuestionsByCard({
+    required String categoryId,
+    required int cardNumber,
+    required int requiredCount,
+  }) async {
+    try {
+      final snapshot = await _firestore
+          .collection('questions')
+          .where('categoryId', isEqualTo: categoryId)
+          .where('cardNumber', isEqualTo: cardNumber)
+          .where('isActive', isEqualTo: true)
+          .get();
+
+      final questions = snapshot.docs.map(QuestionModel.fromFirestore).toList();
+
+      questions.shuffle();
+
+      return {
+        'questions': questions,
+        'isEnough': questions.length >= requiredCount,
+        'found': questions.length,
+      };
+    } catch (e) {
+      throw Exception('Gagal mengambil soal card $cardNumber: $e');
     }
   }
 }
