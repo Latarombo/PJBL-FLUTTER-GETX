@@ -3,8 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 /// Status sebuah card di KategoriKuisView
 enum CardStatus {
   locked, // belum bisa dimainkan
-  available, // bisa dimainkan (tanda tanya)
-  completed, // sudah 100% benar (centang)
+  available, // bisa dimainkan (tanda tanya) — belum pernah selesai
+  completed, // sudah 100% benar (centang) — TIDAK DIPAKAI LANGSUNG di onCardTap
+  replay, // sudah selesai tapi bisa dikerjakan ulang (poin = 0)
 }
 
 /// Definisi satu card di grid KategoriKuis
@@ -125,6 +126,9 @@ class CardWithStatus {
   int get cardNumber => definition.cardNumber;
   String get level => definition.level;
   int get totalSoal => definition.totalSoal;
+
+  /// True jika card ini sudah pernah diselesaikan (poin akan 0 jika dimainkan ulang)
+  bool get isAlreadyCompleted => progress?.isCompleted == true;
 
   /// Soal yang sudah benar di sesi sebelumnya
   List<String> get previouslyCorrectIds => progress?.correctQuestionIds ?? [];

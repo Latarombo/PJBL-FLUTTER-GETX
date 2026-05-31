@@ -118,10 +118,12 @@ class CategoryProgressService {
 
   // ── 4. BUILD STATUS SEMUA CARD (computed dari progress) ─────────────────
   ///
-  /// Aturan unlock:
-  /// - Card 1 selalu available
+  /// Aturan status:
+  /// - Card yang sudah isCompleted → status [replay]
+  ///   (bisa dikerjakan ulang, tapi poin = 0 karena semua soal sudah benar)
+  /// - Card 1 selalu available jika belum completed
   /// - Card N available jika card N-1 sudah isCompleted
-  /// - Card yang sudah isCompleted → status completed
+  /// - Selain itu → locked
   List<CardWithStatus> buildCardsWithStatus(
     Map<int, CategoryCardProgress> progressMap,
   ) {
@@ -135,7 +137,8 @@ class CategoryProgressService {
       CardStatus status;
 
       if (progress?.isCompleted == true) {
-        status = CardStatus.completed;
+        // Sudah diselesaikan → bisa replay (poin 0)
+        status = CardStatus.replay;
       } else if (cardNum == 1) {
         // Card 1 selalu bisa dimainkan
         status = CardStatus.available;

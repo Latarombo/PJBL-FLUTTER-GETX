@@ -90,23 +90,108 @@ class KategoriKuisController extends GetxController {
         );
         break;
 
-      case CardStatus.completed:
-        Get.snackbar(
-          '✅ Sudah Selesai',
-          'Card ${_padNumber(card.cardNumber)} sudah kamu selesaikan! Coba card berikutnya.',
-          backgroundColor: const Color(0xFF2E7D32),
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 14,
-          duration: const Duration(seconds: 2),
-        );
+      // Card yang sudah selesai → bisa dimainkan ulang, poin = 0
+      case CardStatus.replay:
+        _showReplayConfirmation(card);
         break;
 
       case CardStatus.available:
         _startQuiz(card);
         break;
+
+      // completed tidak akan muncul dari buildCardsWithStatus,
+      // tapi tetap di-handle untuk keamanan
+      case CardStatus.completed:
+        _startQuiz(card);
+        break;
     }
+  }
+
+  // ── Konfirmasi sebelum replay ──────────────────────────────────────────────
+  void _showReplayConfirmation(CardWithStatus card) {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            const Icon(
+              Icons.replay_rounded,
+              color: Color(0xFF5A8B7E),
+              size: 22,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Ulangi Card ${_padNumber(card.cardNumber)}?',
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: Color(0xFF270F0F),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Kamu sudah menyelesaikan card ini! Kamu tetap bisa mengulang untuk latihan.',
+              style: TextStyle(fontSize: 13, height: 1.5),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(
+                  color: const Color(0xFFFFB347).withOpacity(0.5),
+                ),
+              ),
+              child: Row(
+                children: const [
+                  Icon(Icons.info_outline, color: Color(0xFFE65100), size: 16),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Semua soal sudah pernah dijawab benar, poin yang didapat = 0',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFE65100),
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text(
+              'Batal',
+              style: TextStyle(color: Color(0xFF9E9E9E)),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Get.back();
+              _startQuiz(card);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF5A8B7E),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              elevation: 0,
+            ),
+            child: const Text('Ulangi', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   // ── Mulai quiz untuk card ini ─────────────────────────────────────────────
@@ -143,6 +228,8 @@ class KategoriKuisController extends GetxController {
         'level': card.level,
         'totalSoal': card.totalSoal,
         'questions': soalUntukCard,
+        // previouslyCorrectIds dikirim agar QuizController tahu soal mana
+        // yang sudah benar → tidak menambah poin untuk soal itu
         'previouslyCorrectIds': card.previouslyCorrectIds,
       },
     )?.then((_) {
