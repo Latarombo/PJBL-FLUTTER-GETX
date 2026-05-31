@@ -23,13 +23,13 @@ class LeaderboardView extends GetView<LeaderboardController> {
 
           // ── Layer 2: Kayu berlapis (podium) + papan (list) ────────────────
           Positioned(
-            top: 220, // sesuaikan nilai ini
-            left: 4, // ← jarak dari kiri
-            right: 4, // ← jarak dari kanan
+            top: 220,
+            left: 4,
+            right: 4,
             bottom: 0,
             child: Image.asset(
               'assets/images/bg_leaderboard_02.png',
-              fit: BoxFit.fill, // ← ganti ke fill agar gambar tidak terpotong
+              fit: BoxFit.fill,
               alignment: Alignment.topCenter,
             ),
           ),
@@ -38,18 +38,11 @@ class LeaderboardView extends GetView<LeaderboardController> {
           SafeArea(
             child: Column(
               children: [
-                // ── 1. Header (fixed) ────────────────────────────────────
                 _buildHeader(),
-
-                // ── 2. Podium (area kayu berlapis) ────────────────────────
                 _buildPodium(),
-
-                // ── 3. List leaderboard (area papan kayu) ─────────────────
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(
-                      bottom: 16,
-                    ), // ← sesuaikan dengan tepi kayu
+                    padding: const EdgeInsets.only(bottom: 16),
                     child: ClipRect(child: _buildLeaderboardList()),
                   ),
                 ),
@@ -155,11 +148,9 @@ class LeaderboardView extends GetView<LeaderboardController> {
           );
         }
 
-        // Podium — awan dihapus, langsung tampilkan tiga item
         return Stack(
           clipBehavior: Clip.none,
           children: [
-            // Peringkat 2 — kiri
             Positioned(
               left: 20,
               bottom: 0,
@@ -172,7 +163,6 @@ class LeaderboardView extends GetView<LeaderboardController> {
                 podiumColor: const Color(0xFFC0C0C0),
               ),
             ),
-            // Peringkat 1 — tengah (lebih tinggi)
             Positioned(
               left: 0,
               right: 0,
@@ -187,7 +177,6 @@ class LeaderboardView extends GetView<LeaderboardController> {
                 isFirst: true,
               ),
             ),
-            // Peringkat 3 — kanan
             Positioned(
               right: 20,
               bottom: 0,
@@ -471,7 +460,12 @@ class LeaderboardView extends GetView<LeaderboardController> {
   Widget _buildCurrentUserCard() {
     return Obx(() {
       final userEntry = controller.currentUserEntry;
+
+      // Selalu tampilkan selama user sudah login
       if (userEntry == null) return const SizedBox.shrink();
+
+      // rank 0 = belum punya rank → tampilkan "-"
+      final rankDisplay = userEntry.rank > 0 ? userEntry.rank.toString() : '-';
 
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -494,10 +488,11 @@ class LeaderboardView extends GetView<LeaderboardController> {
           ),
           child: Row(
             children: [
+              // ── Rank: angka atau "-" ──────────────────────────────────
               SizedBox(
                 width: 30,
                 child: Text(
-                  userEntry.rank.toString(),
+                  rankDisplay,
                   style: const TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
@@ -528,14 +523,29 @@ class LeaderboardView extends GetView<LeaderboardController> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  userEntry.username,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xfff7d9bc),
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      userEntry.username,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xfff7d9bc),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    // Teks kecil jika belum pernah main
+                    if (userEntry.rank == 0)
+                      const Text(
+                        'Belum pernah main',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFFE8C4A0),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               Text(

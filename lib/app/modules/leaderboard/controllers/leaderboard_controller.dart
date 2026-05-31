@@ -22,7 +22,6 @@ class LeaderboardController extends GetxController {
   }
 
   void _listenLeaderboard() {
-    // Cancel subscription lama sebelum buat yang baru
     _subscription?.cancel();
     isLoading.value = true;
 
@@ -44,20 +43,30 @@ class LeaderboardController extends GetxController {
     );
   }
 
-  /// Dipanggil saat user buka tab leaderboard
   void refresh() {
     _listenLeaderboard();
   }
 
   List<LeaderboardModel> get top3 => leaderboardData.take(3).toList();
 
+  /// Selalu return entry user saat ini.
+  /// - Jika ada di leaderboard → return dengan rank asli
+  /// - Jika belum ada (belum main) → return dengan rank 0 (ditampilkan sebagai "-")
   LeaderboardModel? get currentUserEntry {
     final uid = _authController.uid;
     if (uid == null) return null;
+
     try {
+      // Coba cari di leaderboard stream
       return leaderboardData.firstWhere((e) => e.uid == uid);
     } catch (_) {
-      return null;
+      // Belum ada di leaderboard → buat entry dummy dengan poin 0 & rank 0
+      return LeaderboardModel(
+        uid: uid,
+        username: _authController.username,
+        totalPoints: _authController.totalPoints,
+        rank: 0, // 0 = belum punya rank, ditampilkan "-"
+      );
     }
   }
 

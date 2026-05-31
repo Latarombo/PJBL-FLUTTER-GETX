@@ -72,10 +72,22 @@ class AuthService {
         createdAt: now,
       );
 
-      await _firestore
-          .collection('users')
-          .doc(user.uid)
-          .set(userModel.toFirestore());
+      // Simpan user + leaderboard entry paralel
+      await Future.wait([
+        _firestore
+            .collection('users')
+            .doc(user.uid)
+            .set(userModel.toFirestore()),
+
+        // ── Langsung masuk leaderboard dengan poin 0 ──────────────────
+        _firestore.collection('leaderboard').doc(user.uid).set({
+          'uid': user.uid,
+          'username': username.trim(),
+          'avatarUrl': null,
+          'totalPoints': 0,
+          'lastUpdated': FieldValue.serverTimestamp(),
+        }),
+      ]);
 
       return userModel;
     } on FirebaseAuthException catch (e) {
