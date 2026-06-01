@@ -220,7 +220,11 @@ class AudioService {
     // seek ke awal karena stop() mereset posisi player
     await _player!.seek(Duration.zero);
     await _player!.setVolume(0.0);
-    await _player!.play();
+    unawaited(
+      _player!.play().catchError((e) {
+        debugPrint('[AudioService] play ERROR: $e');
+      }),
+    );
 
     const steps = 20;
     final stepDuration = Duration(milliseconds: durationMs ~/ steps);
