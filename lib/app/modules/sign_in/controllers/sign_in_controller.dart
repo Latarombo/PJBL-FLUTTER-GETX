@@ -28,7 +28,8 @@ class SignInController extends GetxController {
 
     if (email.isEmpty) {
       Get.snackbar(
-        'Gagal', 'Email tidak boleh kosong',
+        'Gagal',
+        'Email tidak boleh kosong',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -37,7 +38,8 @@ class SignInController extends GetxController {
     }
     if (password.isEmpty) {
       Get.snackbar(
-        'Gagal', 'Password tidak boleh kosong',
+        'Gagal',
+        'Password tidak boleh kosong',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -46,7 +48,8 @@ class SignInController extends GetxController {
     }
     if (password.length < 6) {
       Get.snackbar(
-        'Peringatan', 'Password minimal 6 karakter',
+        'Peringatan',
+        'Password minimal 6 karakter',
         backgroundColor: Colors.orange,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -72,18 +75,29 @@ class SignInController extends GetxController {
     }
   }
 
-  void handleGoogleSignIn() {
-    Get.snackbar(
-      'Info', 'Login dengan Google sedang diproses...',
-      backgroundColor: Colors.blue,
-      colorText: Colors.white,
-      snackPosition: SnackPosition.BOTTOM,
-    );
+  Future<void> handleGoogleSignIn() async {
+    try {
+      isLoading.value = true;
+      final user = await _authService.signInWithGoogle();
+      Get.find<AuthController>().setUser(user);
+      Get.offAllNamed(Routes.APP);
+    } catch (e) {
+      Get.snackbar(
+        'Gagal Login Google',
+        e.toString().replaceAll('Exception: ', ''),
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } finally {
+      isLoading.value = false;
+    }
   }
 
   void handleFacebookSignIn() {
     Get.snackbar(
-      'Info', 'Login dengan Facebook sedang diproses...',
+      'Info',
+      'Login dengan Facebook sedang diproses...',
       backgroundColor: Colors.blue,
       colorText: Colors.white,
       snackPosition: SnackPosition.BOTTOM,

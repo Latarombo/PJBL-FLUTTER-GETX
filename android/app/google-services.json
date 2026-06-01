@@ -12,7 +12,20 @@
           "package_name": "com.example.santarana"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "336785513468-gu1p8vnrsar4282vn0es1jkjm0rrijrk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.santarana",
+            "certificate_hash": "e017f8aa9cd06507effb49a43e20733d9ea46ca7"
+          }
+        },
+        {
+          "client_id": "336785513468-ac38l9q2m8htvtj2tevotdbnqabr0mao.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBP4ksXYPnWL7mmIN4_Y-_9-5eQd1JrOTg"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "336785513468-ac38l9q2m8htvtj2tevotdbnqabr0mao.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "336785513468-6p236a2iioamb5snavk9vhc5d1flr38i.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.santarana"
+              }
+            }
+          ]
         }
       }
     }

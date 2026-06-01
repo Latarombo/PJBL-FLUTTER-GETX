@@ -28,7 +28,7 @@ class PasswordRecoverySuccessView
 
                 // Title
                 const Text(
-                  'Password berhasil\ndipulihkan',
+                  'Email reset password\ntelah dikirim!',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 24,
@@ -41,7 +41,7 @@ class PasswordRecoverySuccessView
 
                 // Description
                 Text(
-                  'Selamat datang! Anda berhasil Login. Siap uji pengetahuanmu?',
+                  'Link reset password telah dikirim ke email kamu.\nSilakan cek inbox atau folder spam, lalu klik link untuk membuat password baru.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 13,

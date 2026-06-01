@@ -36,9 +36,13 @@ class RegisterController extends GetxController {
     final password = passwordController.text;
     final confirm = confirmPasswordController.text;
 
-    if (email.isEmpty || username.isEmpty || password.isEmpty || confirm.isEmpty) {
+    if (email.isEmpty ||
+        username.isEmpty ||
+        password.isEmpty ||
+        confirm.isEmpty) {
       Get.snackbar(
-        'Gagal', 'Semua field harus diisi',
+        'Gagal',
+        'Semua field harus diisi',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -47,7 +51,8 @@ class RegisterController extends GetxController {
     }
     if (!_isValidEmail(email)) {
       Get.snackbar(
-        'Gagal', 'Format email tidak valid',
+        'Gagal',
+        'Format email tidak valid',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -56,7 +61,8 @@ class RegisterController extends GetxController {
     }
     if (username.length < 3) {
       Get.snackbar(
-        'Peringatan', 'Username minimal 3 karakter',
+        'Peringatan',
+        'Username minimal 3 karakter',
         backgroundColor: Colors.orange,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -65,7 +71,8 @@ class RegisterController extends GetxController {
     }
     if (password.length < 6) {
       Get.snackbar(
-        'Peringatan', 'Password minimal 6 karakter',
+        'Peringatan',
+        'Password minimal 6 karakter',
         backgroundColor: Colors.orange,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -74,7 +81,8 @@ class RegisterController extends GetxController {
     }
     if (password != confirm) {
       Get.snackbar(
-        'Gagal', 'Password tidak sesuai! Cek kembali password Anda.',
+        'Gagal',
+        'Password tidak sesuai! Cek kembali password Anda.',
         backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
@@ -100,19 +108,32 @@ class RegisterController extends GetxController {
     }
   }
 
-  void handleGoogleSignIn() => Get.snackbar(
-        'Info', 'Login dengan Google sedang diproses...',
-        backgroundColor: Colors.blue,
+  Future<void> handleGoogleSignIn() async {
+    try {
+      isLoading.value = true;
+      final user = await _authService.signInWithGoogle();
+      Get.find<AuthController>().setUser(user);
+      Get.offAllNamed(Routes.APP);
+    } catch (e) {
+      Get.snackbar(
+        'Gagal Login Google',
+        e.toString().replaceAll('Exception: ', ''),
+        backgroundColor: Colors.red,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
       );
+    } finally {
+      isLoading.value = false;
+    }
+  }
 
   void handleFacebookSignIn() => Get.snackbar(
-        'Info', 'Login dengan Facebook sedang diproses...',
-        backgroundColor: Colors.blue,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    'Info',
+    'Login dengan Facebook sedang diproses...',
+    backgroundColor: Colors.blue,
+    colorText: Colors.white,
+    snackPosition: SnackPosition.BOTTOM,
+  );
 
   void goBack() => Get.back();
 

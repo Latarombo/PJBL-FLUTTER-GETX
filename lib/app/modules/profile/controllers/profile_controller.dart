@@ -138,7 +138,7 @@ class ProfileController extends GetxController {
               Get.back();
               await _doLogout();
             },
-            child: const Text('Keluar', style: TextStyle(color: Colors.red)),
+            child: const Text('Keluar', style: TextStyle(color: Colors.red  )),
           ),
         ],
       ),
@@ -147,7 +147,7 @@ class ProfileController extends GetxController {
 
   Future<void> _doLogout() async {
     try {
-      await _authService.signOut();
+      await _authService.signOutGoogle();
       _authController.clearUser();
       Get.offAllNamed(Routes.SIGN_IN);
     } catch (e) {

@@ -59,7 +59,7 @@ class SettingsController extends GetxController {
 
   Future<void> _doLogout() async {
     try {
-      await _authService.signOut();
+      await _authService.signOutGoogle();
       _authController.clearUser();
       Get.offAllNamed(Routes.SIGN_IN);
     } catch (e) {

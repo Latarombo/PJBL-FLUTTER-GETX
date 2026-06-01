@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:santarana/shared/models/user_model.dart';
 
 class AuthService {
@@ -111,6 +112,90 @@ class AuthService {
       throw Exception(_mapFirebaseError(e.code));
     } catch (_) {
       throw Exception('Gagal keluar, coba lagi');
+    }
+  }
+
+  Future<UserModel> signInWithGoogle() async {
+    try {
+      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+
+      if (googleUser == null) {
+        throw Exception('Login Google dibatalkan');
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final userCredential = await _auth.signInWithCredential(credential);
+      final user = userCredential.user;
+      if (user == null) throw Exception('Gagal login dengan Google');
+
+      final userRef = _firestore.collection('users').doc(user.uid);
+      final doc = await userRef.get();
+
+      if (!doc.exists) {
+        // User baru — buat dokumen
+        final now = DateTime.now();
+        final username =
+            user.displayName ?? user.email?.split('@').first ?? 'User';
+
+        final userModel = UserModel(
+          uid: user.uid,
+          username: username,
+          email: user.email ?? '',
+          role: 'user',
+          avatarUrl: user.photoURL,
+          totalPoints: 0,
+          rank: 0,
+          correctRate: 0.0,
+          quizCompleted: 0,
+          streak: 0,
+          lastActiveAt: now,
+          createdAt: now,
+        );
+
+        await Future.wait([
+          userRef.set(userModel.toFirestore()),
+          _firestore.collection('leaderboard').doc(user.uid).set({
+            'uid': user.uid,
+            'username': username,
+            'avatarUrl': user.photoURL,
+            'totalPoints': 0,
+            'lastUpdated': FieldValue.serverTimestamp(),
+          }),
+        ]);
+
+        return userModel;
+      } else {
+        // User lama — update lastActiveAt
+        await userRef.update({'lastActiveAt': FieldValue.serverTimestamp()});
+        return UserModel.fromFirestore(doc);
+      }
+    } on FirebaseAuthException catch (e) {
+      throw Exception(_mapAuthError(e.code));
+    } on FirebaseException catch (e) {
+      throw Exception(_mapFirebaseError(e.code));
+    } on Exception catch (e) {
+      if (e.toString().startsWith('Exception: ')) rethrow;
+      throw Exception('Gagal login dengan Google');
+    }
+  }
+
+  Future<void> signOutGoogle() async {
+    try {
+      final googleSignIn = GoogleSignIn();
+      if (await googleSignIn.isSignedIn()) {
+        await googleSignIn.signOut();
+      }
+      await _auth.signOut();
+    } catch (_) {
+      await _auth.signOut();
     }
   }
 
