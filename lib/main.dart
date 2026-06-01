@@ -12,7 +12,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Hapus setelah berhasil test
   print('Firebase connected: ${Firebase.app().name}');
 
   await Get.putAsync(() async => AuthController());
@@ -31,12 +30,8 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'SantaraNa',
       theme: AppTheme.lightTheme,
-
-      // GetX Route Management
       initialRoute: Routes.SPLASH,
       getPages: AppPages.routes,
-
-      // GetX default transition (opsional)
       defaultTransition: Transition.fadeIn,
       transitionDuration: const Duration(milliseconds: 300),
     );

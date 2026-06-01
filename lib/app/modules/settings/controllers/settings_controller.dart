@@ -1,19 +1,32 @@
+// lib/app/modules/settings/controllers/settings_controller.dart
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:santarana/app/routes/app_pages.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
+import 'package:santarana/shared/services/audio_service.dart';
 import 'package:santarana/shared/services/auth_service.dart';
 
 class SettingsController extends GetxController {
   final AuthService _authService = AuthService();
   final AuthController _authController = Get.find<AuthController>();
 
-  // Toggle states — Music, Efek Suara, Getar Ponsel
-  final music = true.obs;
+  late final RxBool music;
   final efekSuara = true.obs;
   final getarPonsel = false.obs;
 
-  void toggleMusic(bool value) => music.value = value;
+  @override
+  void onInit() {
+    super.onInit();
+    // Sinkronkan toggle dengan state AudioService yang sesungguhnya
+    music = AudioService.instance.isMusicEnabled.obs;
+  }
+
+  void toggleMusic(bool value) {
+    music.value = value;
+    AudioService.instance.setMusicEnabled(value);
+  }
+
   void toggleEfekSuara(bool value) => efekSuara.value = value;
   void toggleGetarPonsel(bool value) => getarPonsel.value = value;
 

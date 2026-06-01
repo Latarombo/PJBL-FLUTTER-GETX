@@ -1,3 +1,10 @@
+// lib/app/modules/quiz/controllers/quiz_controller.dart
+//
+// PERUBAHAN:
+// - onInit()  → fadeOutAndPause() saat quiz dimulai
+// - onClose() → resumeIfEnabled() saat quiz selesai/ditutup
+// Tidak ada perubahan logika quiz sama sekali.
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -7,6 +14,7 @@ import 'package:santarana/shared/models/category_model.dart';
 import 'package:santarana/shared/models/progress_model.dart';
 import 'package:santarana/shared/models/question_model.dart';
 import 'package:santarana/shared/models/quiz_session_model.dart';
+import 'package:santarana/shared/services/audio_service.dart';
 import 'package:santarana/shared/services/badge_service.dart';
 import 'package:santarana/shared/services/category_progress_service.dart';
 import 'package:santarana/shared/services/leaderboard_service.dart';
@@ -62,8 +70,22 @@ class QuizController extends GetxController {
   @override
   void onInit() {
     super.onInit();
+
+    // 🎵 Fade out BGM saat quiz dimulai — halus & cepat (800ms)
+    AudioService.instance.fadeOutAndPause(durationMs: 800);
+
     final args = Get.arguments as Map<String, dynamic>?;
     _initFromArgs(args);
+  }
+
+  @override
+  void onClose() {
+    _autoAdvanceTimer?.cancel();
+
+    // 🎵 Resume BGM saat keluar dari quiz
+    AudioService.instance.resumeIfEnabled();
+
+    super.onClose();
   }
 
   void _initFromArgs(Map<String, dynamic>? args) {
@@ -225,7 +247,6 @@ class QuizController extends GetxController {
 
       final futures = <Future>[];
 
-      // 1. Simpan progress card
       if (isCardBased && _categoryId != null && _cardNumber != null) {
         futures.add(
           _cardProgressService.saveCardProgress(
@@ -239,11 +260,9 @@ class QuizController extends GetxController {
         );
       }
 
-      // 2. Tambah poin
       if (_newPointsEarned > 0) {
         futures.add(_resultService.addPointsToUser(uid, _newPointsEarned));
 
-        // 3. Update leaderboard
         futures.add(
           _leaderboardService.updateLeaderboardEntry(
             uid,
@@ -254,7 +273,6 @@ class QuizController extends GetxController {
         );
       }
 
-      // 4. Simpan sesi quiz
       if (category != null) {
         final session = QuizSessionModel(
           userId: uid,
@@ -273,7 +291,6 @@ class QuizController extends GetxController {
         );
         futures.add(_resultService.saveQuizSession(session));
 
-        // 5. Simpan progress kategori
         final progressModel = ProgressModel(
           categoryId: category.id,
           categoryName: category.name,
@@ -294,7 +311,6 @@ class QuizController extends GetxController {
       await Future.wait(futures);
       await _authController.refreshUser();
 
-      // 6. Cek dan award badge
       if (isCardBased && _categoryId != null) {
         await _checkAndAwardBadge(uid: uid, categoryId: _categoryId!);
       }
@@ -357,7 +373,6 @@ class QuizController extends GetxController {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Ikon hasil
               Container(
                 width: 80,
                 height: 80,
@@ -384,8 +399,6 @@ class QuizController extends GetxController {
                 ),
               ),
               const SizedBox(height: 16),
-
-              // Grade
               Text(
                 grade,
                 style: const TextStyle(
@@ -395,8 +408,6 @@ class QuizController extends GetxController {
                 ),
               ),
               const SizedBox(height: 8),
-
-              // Skor
               Text(
                 'Jawaban Benar: $correct/$total',
                 style: TextStyle(fontSize: 16, color: Colors.grey[700]),
@@ -411,8 +422,6 @@ class QuizController extends GetxController {
                 ),
               ),
               const SizedBox(height: 12),
-
-              // Info poin
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 16,
@@ -450,8 +459,6 @@ class QuizController extends GetxController {
                   ],
                 ),
               ),
-
-              // Info card unlock jika perfect
               if (isPerfect && isCardBased) ...[
                 const SizedBox(height: 10),
                 Container(
@@ -487,10 +494,7 @@ class QuizController extends GetxController {
                   ),
                 ),
               ],
-
               const SizedBox(height: 24),
-
-              // Tombol
               Row(
                 children: [
                   Expanded(
@@ -512,9 +516,8 @@ class QuizController extends GetxController {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        Get.back(); // tutup dialog
-                        if (isCardBased)
-                          Get.back(); // kembali ke KategoriKuisView
+                        Get.back();
+                        if (isCardBased) Get.back();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1A2332),
@@ -612,10 +615,4 @@ class QuizController extends GetxController {
       margin: const EdgeInsets.all(16),
     );
   }
-
-  @override
-  void onClose() {
-    _autoAdvanceTimer?.cancel();
-    super.onClose();
-  }
-} // ← satu kurung kurawal penutup class di sini
+}

@@ -1,12 +1,14 @@
+// lib/app/modules/splash/controllers/splash_controller.dart
+//
+// PERUBAHAN: AudioService.init() dipanggil dengan autoPlay: false
+// BGM hanya dimulai saat masuk AppShell (home), bukan di auth pages.
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_instance/src/extension_instance.dart';
-import 'package:get/get_navigation/src/extension_navigation.dart';
-import 'package:get/get_state_manager/src/rx_flutter/rx_ticket_provider_mixin.dart';
-import 'package:get/get_state_manager/src/simple/get_controllers.dart';
+import 'package:get/get.dart';
 import 'package:santarana/app/routes/app_pages.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
+import 'package:santarana/shared/services/audio_service.dart';
 import 'package:santarana/shared/services/auth_service.dart';
 
 class SplashController extends GetxController with GetTickerProviderStateMixin {
@@ -29,22 +31,18 @@ class SplashController extends GetxController with GetTickerProviderStateMixin {
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-
     slideController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-
     fadeAnimation = CurvedAnimation(
       parent: fadeController,
       curve: Curves.easeIn,
     );
-
     slideAnimation = CurvedAnimation(
       parent: slideController,
       curve: Curves.easeOut,
     );
-
     textFadeAnimation = CurvedAnimation(
       parent: slideController,
       curve: Curves.easeIn,
@@ -57,9 +55,12 @@ class SplashController extends GetxController with GetTickerProviderStateMixin {
     await slideController.forward();
     await Future.delayed(const Duration(milliseconds: 2800));
 
-    // menggunakan authStateChanges().first
-    // ini MENUNGGU Firebase selesai restore session
-    // tidak langsung ambil currentUser yang bisa null
+    // 🎵 Init audio tanpa auto-play — BGM dimulai oleh AppShellController
+    // saat user sudah masuk ke halaman home.
+    AudioService.instance.initWithoutPlay().catchError((e) {
+      debugPrint('[AudioService] init error (ignored): $e');
+    });
+
     final firebaseUser = await FirebaseAuth.instance.authStateChanges().first;
 
     if (firebaseUser != null) {

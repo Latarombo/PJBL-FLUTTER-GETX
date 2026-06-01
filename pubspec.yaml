@@ -45,6 +45,7 @@ dependencies:
   firebase_auth: ^6.5.1
   cloud_firestore: ^6.4.1
   intl: ^0.20.2
+  just_audio: ^0.9.40
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
@@ -75,6 +76,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/audio/ 
     - assets/images/
     - assets/quiz_category_images/makanan_tradisional/
     - assets/quiz_category_images/musik_nusantara/

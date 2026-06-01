@@ -1,23 +1,38 @@
+// lib/app/app_shell.dart
+//
+// PERUBAHAN: AppShellController.onInit() memanggil AudioService.startBgm()
+// sehingga BGM hanya mulai saat user sudah masuk ke halaman utama (home).
+
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
-import 'package:get/get_core/src/get_main.dart';
-import 'package:get/get_instance/src/extension_instance.dart';
-import 'package:get/get_rx/src/rx_types/rx_types.dart';
-import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
-import 'package:get/get_state_manager/src/simple/get_controllers.dart';
+import 'package:get/get.dart';
 import 'package:santarana/app/modules/home/views/home_view.dart';
 import 'package:santarana/app/modules/leaderboard/controllers/leaderboard_controller.dart';
 import 'package:santarana/app/modules/leaderboard/views/leaderboard_view.dart';
 import 'package:santarana/app/modules/profile/views/profile_view.dart';
 import 'package:santarana/app/modules/settings/views/settings_view.dart';
+import 'package:santarana/shared/services/audio_service.dart';
 
 class AppShellController extends GetxController {
   final currentIndex = 0.obs;
 
+  @override
+  void onInit() {
+    super.onInit();
+    // 🎵 Mulai BGM saat user masuk ke halaman utama
+    AudioService.instance.startBgm();
+  }
+
+  @override
+  void onClose() {
+    // 🎵 Stop BGM saat shell ditutup (misal: logout)
+    AudioService.instance.stopBgm();
+    super.onClose();
+  }
+
   void changePage(int index) {
     currentIndex.value = index;
 
-    // Refresh leaderboard stream setiap kali tab leaderboard dibuka
     if (index == 1) {
       Get.find<LeaderboardController>().refresh();
     }
