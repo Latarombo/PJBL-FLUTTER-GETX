@@ -2373,7 +2373,7 @@ class QuestionSeeder {
               ],
               correct: 0,
               imageUrl:
-                  'assets/quiz_category_images/senjata_tradisionalsenjata_23.jpg',
+                  'assets/quiz_category_images/senjata_tradisional/senjata_23.jpg',
             ),
             _soal(
               q: 'Gambar ini menampilkan pisau dapur tradisional masyarakat Bali yang juga berfungsi sebagai senjata perlindungan diri sehari-hari, bernama...',

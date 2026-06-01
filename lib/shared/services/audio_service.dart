@@ -1,5 +1,22 @@
 // lib/shared/services/audio_service.dart
-// Versi debug — tambah banyak print untuk lacak masalah
+//
+// FIX UTAMA:
+// 1. _fadeOutAndStop → pakai stop() bukan pause()
+//    pause() membiarkan AudioTrack tetap terbuka → Android terus-terusan
+//    melaporkan "isLongTimeZoreData" karena menerima silence tanpa batas.
+//    stop() menutup AudioTrack sepenuhnya → warning hilang.
+//
+// 2. _fadeIn → seek(Duration.zero) dulu sebelum play()
+//    Karena stop() mereset posisi, seek memastikan playback mulai dari awal.
+//
+// 3. Gapless loop → LoopingAudioSource
+//    MP3 punya encoder-delay yang menciptakan gap kecil saat loop.
+//    LoopingAudioSource mengelola loop secara internal sehingga
+//    c2.android.mp3.decoder tidak idle di titik loop.
+//
+// REKOMENDASI TAMBAHAN (di luar kode):
+//    Ganti bgm_main.mp3 → bgm_main.ogg (Vorbis).
+//    OGG tidak punya encoder-delay → loop benar-benar seamless tanpa gap.
 
 import 'dart:async';
 import 'package:audio_session/audio_session.dart';
@@ -14,8 +31,10 @@ class AudioService {
   AudioPlayer? _player;
 
   static const _prefKeyMusic = 'setting_music';
+  static const _bgmAsset = 'assets/audio/bgm_main.mp3';
 
   bool _isInitialized = false;
+  bool _isInitializing = false;
   bool _isMusicEnabled = true;
 
   Timer? _fadeTimer;
@@ -24,8 +43,6 @@ class AudioService {
   bool get isPlaying => _player?.playing ?? false;
 
   // ── Init tanpa play ───────────────────────────────────────────────────────
-  bool _isInitializing = false;
-
   Future<void> initWithoutPlay() async {
     if (_isInitialized || _isInitializing) return;
     _isInitializing = true;
@@ -34,7 +51,6 @@ class AudioService {
       final prefs = await SharedPreferences.getInstance();
       _isMusicEnabled = prefs.getBool(_prefKeyMusic) ?? true;
 
-      // ✅ Setup audio session untuk Android
       final session = await AudioSession.instance;
       await session.configure(
         const AudioSessionConfiguration(
@@ -43,23 +59,28 @@ class AudioService {
               AVAudioSessionCategoryOptions.mixWithOthers,
           androidAudioAttributes: AndroidAudioAttributes(
             contentType: AndroidAudioContentType.music,
-            usage: AndroidAudioUsage.game, // ← karena ini game
+            usage: AndroidAudioUsage.game,
           ),
           androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
         ),
       );
 
       _player = AudioPlayer();
-      await _player!.setAsset('assets/audio/bgm_main.mp3');
-      await _player!.setLoopMode(LoopMode.one);
+
+      // FIX: LoopingAudioSource mengelola loop secara internal di just_audio,
+      // sehingga decoder tidak idle di titik loop → tidak ada gap silence.
+      // count: 100 setara "infinite" untuk BGM game.
+      final loopingSource = LoopingAudioSource(
+        count: 100,
+        child: AudioSource.asset(_bgmAsset),
+      );
+      await _player!.setAudioSource(loopingSource);
       await _player!.setVolume(1.0);
 
       _isInitialized = true;
       debugPrint('[Audio] init OK, duration: ${_player!.duration}');
     } catch (e) {
-      debugPrint(
-        '[Audio] INIT ERROR: $e',
-      ); // ← ini akan tampil jika file tidak ada
+      debugPrint('[Audio] INIT ERROR: $e');
       _player?.dispose();
       _player = null;
       _isInitialized = false;
@@ -70,32 +91,20 @@ class AudioService {
 
   // ── Start BGM saat masuk AppShell ─────────────────────────────────────────
   Future<void> startBgm() async {
-    debugPrint('[AudioService] startBgm() dipanggil');
-    debugPrint('[AudioService]   _isInitialized: $_isInitialized');
-    debugPrint('[AudioService]   _isMusicEnabled: $_isMusicEnabled');
-    debugPrint('[AudioService]   _player null: ${_player == null}');
-    debugPrint('[AudioService]   isPlaying: ${_player?.playing}');
+    debugPrint('[AudioService] startBgm()');
 
-    if (!_isMusicEnabled) {
-      debugPrint('[AudioService] musik dimatikan user, skip');
-      return;
-    }
+    if (!_isMusicEnabled) return;
 
-    // Jika belum init (misal fire-and-forget belum selesai), init dulu
     if (!_isInitialized || _player == null) {
-      debugPrint('[AudioService] belum init, coba init sekarang...');
       await initWithoutPlay();
     }
 
     if (_player == null) {
-      debugPrint('[AudioService] _player masih null setelah init, abort');
+      debugPrint('[AudioService] _player null setelah init, abort');
       return;
     }
 
-    if (_player!.playing) {
-      debugPrint('[AudioService] sudah playing, skip');
-      return;
-    }
+    if (_player!.playing) return;
 
     try {
       _cancelFade();
@@ -108,10 +117,10 @@ class AudioService {
 
   // ── Stop BGM saat logout ──────────────────────────────────────────────────
   Future<void> stopBgm() async {
-    debugPrint('[AudioService] stopBgm() dipanggil');
+    debugPrint('[AudioService] stopBgm()');
     if (_player == null || !_player!.playing) return;
     try {
-      await _fadeOutAndPause(durationMs: 600);
+      await _fadeOutAndStop(durationMs: 600);
     } catch (e) {
       debugPrint('[AudioService] stopBgm ERROR: $e');
     }
@@ -130,13 +139,13 @@ class AudioService {
     if (enabled) {
       await _fadeIn();
     } else {
-      await _fadeOutAndPause();
+      await _fadeOutAndStop();
     }
   }
 
   // ── Resume setelah keluar quiz ────────────────────────────────────────────
   Future<void> resumeIfEnabled() async {
-    debugPrint('[AudioService] resumeIfEnabled() dipanggil');
+    debugPrint('[AudioService] resumeIfEnabled()');
     if (!_isMusicEnabled || _player == null || _player!.playing) return;
     _cancelFade();
     await _fadeIn();
@@ -144,9 +153,9 @@ class AudioService {
 
   // ── Fade out saat masuk quiz ──────────────────────────────────────────────
   Future<void> fadeOutAndPause({int durationMs = 800}) async {
-    debugPrint('[AudioService] fadeOutAndPause() dipanggil');
+    debugPrint('[AudioService] fadeOutAndPause()');
     if (_player == null || !_player!.playing) return;
-    await _fadeOutAndPause(durationMs: durationMs);
+    await _fadeOutAndStop(durationMs: durationMs);
   }
 
   Future<void> dispose() async {
@@ -157,7 +166,17 @@ class AudioService {
   }
 
   // ── PRIVATE ───────────────────────────────────────────────────────────────
-  Future<void> _fadeOutAndPause({int durationMs = 800}) async {
+
+  // FIX: Menggunakan stop() bukan pause().
+  //
+  // pause() → AudioTrack tetap terbuka tapi menerima silence → Android log:
+  //   "isLongTimeZoreData zoer date time X Seconds" selama berjam-jam.
+  //
+  // stop() → AudioTrack ditutup sepenuhnya → warning hilang.
+  //
+  // Konsekuensi: saat play() lagi, just_audio perlu seek ke posisi awal.
+  // Ini ditangani di _fadeIn() dengan seek(Duration.zero).
+  Future<void> _fadeOutAndStop({int durationMs = 800}) async {
     _cancelFade();
     if (_player == null) return;
 
@@ -165,19 +184,23 @@ class AudioService {
     final stepDuration = Duration(milliseconds: durationMs ~/ steps);
     final startVolume = _player!.volume;
     final volumeStep = startVolume / steps;
+
     final completer = Completer<void>();
     int step = 0;
 
     _fadeTimer = Timer.periodic(stepDuration, (timer) {
       step++;
       final newVolume = (_player!.volume - volumeStep).clamp(0.0, 1.0);
-      _player?.setVolume(newVolume); // tanpa await
+      _player?.setVolume(newVolume);
 
       if (step >= steps || newVolume <= 0.0) {
         timer.cancel();
         _fadeTimer = null;
-        _player?.pause();
+        // Reset volume ke 1.0 dulu agar saat _fadeIn tidak perlu set ulang.
         _player?.setVolume(1.0);
+        // FIX: stop() menutup AudioTrack → tidak ada lagi "isLongTimeZoreData".
+        _player?.stop();
+        if (!completer.isCompleted) completer.complete();
       }
     });
 
@@ -188,17 +211,20 @@ class AudioService {
     _cancelFade();
     if (_player == null) return;
 
+    // FIX: seek ke awal karena stop() mereset posisi player internal.
+    // Tanpa ini, playback bisa mulai dari posisi terakhir yang tidak terduga.
+    await _player!.seek(Duration.zero);
     await _player!.setVolume(0.0);
     await _player!.play();
 
     const steps = 20;
     final stepDuration = Duration(milliseconds: durationMs ~/ steps);
     const volumeStep = 1.0 / steps;
-    double currentVolume = 0.0; // ✅ track volume secara lokal
+    double currentVolume = 0.0;
 
     _fadeTimer = Timer.periodic(stepDuration, (timer) {
       currentVolume = (currentVolume + volumeStep).clamp(0.0, 1.0);
-      _player?.setVolume(currentVolume); // ✅ hapus async/await di sini
+      _player?.setVolume(currentVolume);
 
       if (currentVolume >= 1.0) {
         timer.cancel();

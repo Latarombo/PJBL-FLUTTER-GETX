@@ -57,7 +57,7 @@ class SplashController extends GetxController with GetTickerProviderStateMixin {
 
     // 🎵 Init audio tanpa auto-play — BGM dimulai oleh AppShellController
     // saat user sudah masuk ke halaman home.
-    await AudioService.instance.await _player!.setAsset('assets/audio/bgm_main.mp3');().catchError((e) {
+    await AudioService.instance.initWithoutPlay().catchError((e) {
       debugPrint('[AudioService] init error (ignored): $e');
     });
 
