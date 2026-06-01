@@ -4,11 +4,11 @@ import 'package:get/get_instance/src/extension_instance.dart';
 import 'package:get/get_state_manager/src/rx_flutter/rx_obx_widget.dart';
 import 'package:get/get_state_manager/src/simple/get_view.dart';
 import 'package:santarana/app/app_shell.dart';
-import 'package:santarana/app/modules/daily_mission/controller/daily_mission_controller.dart';
+import 'package:santarana/app/modules/weekly_mission/controller/weekly_mission_controller.dart';
 import 'package:santarana/app/modules/home/controllers/home_controller.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
 import 'package:santarana/shared/models/category_model.dart';
-import 'package:santarana/shared/models/daily_mission_model.dart';
+import 'package:santarana/shared/models/weekly_mission_model.dart';
 import 'package:santarana/shared/widgets/user_avatar.dart';
 
 class HomeView extends GetView<HomeController> {
@@ -753,7 +753,7 @@ class HomeView extends GetView<HomeController> {
 
   // ── MISSION GRID — membaca dari DailyMissionController ───────────────────
   Widget _buildMissionGrid() {
-    final missionCtrl = Get.find<DailyMissionController>();
+    final missionCtrl = Get.find<WeeklyMissionController>();
 
     return Obx(() {
       if (missionCtrl.isLoading.value) {
@@ -769,7 +769,7 @@ class HomeView extends GetView<HomeController> {
           child: Padding(
             padding: EdgeInsets.all(24),
             child: Text(
-              'Misi hari ini belum tersedia.\nCoba lagi nanti.',
+              'Misi minggu ini belum tersedia.\nCoba lagi nanti.',
               textAlign: TextAlign.center,
               style: TextStyle(color: Color(0xFF714F4C)),
             ),
@@ -778,7 +778,7 @@ class HomeView extends GetView<HomeController> {
       }
 
       final regular = items.where((m) => !m.slot.isSpecial).toList();
-      final special = items.cast<MissionSlotWithStatus?>().firstWhere(
+      final special = items.cast<WeeklyMissionSlotWithStatus?>().firstWhere(
         (m) => m?.slot.isSpecial == true,
         orElse: () => null,
       );
@@ -814,13 +814,13 @@ class HomeView extends GetView<HomeController> {
 
   // ── MISSION CARD ──────────────────────────────────────────────────────────
   Widget _buildMissionCard(
-    MissionSlotWithStatus item, {
+    WeeklyMissionSlotWithStatus item, {
     required VoidCallback onTap,
   }) {
-    final isCompleted = item.status == DailyMissionStatus.completed;
-    final isInProgress = item.status == DailyMissionStatus.inProgress;
-    final isLocked = item.status == DailyMissionStatus.locked;
-    final isExpired = item.status == DailyMissionStatus.expired;
+    final isCompleted = item.status == WeeklyMissionStatus.completed;
+    final isInProgress = item.status == WeeklyMissionStatus.inProgress;
+    final isLocked = item.status == WeeklyMissionStatus.locked;
+    final isExpired = item.status == WeeklyMissionStatus.expired;
     final hasImage = item.slot.imagePath != null;
 
     const strokeColor = Color(0xFF3D1C10);
@@ -909,10 +909,7 @@ class HomeView extends GetView<HomeController> {
                         Stack(
                           children: [
                             Text(
-                              item.slot.missionNumber.toString().padLeft(
-                                2,
-                                '0',
-                              ),
+                              item.slot.day.toString().padLeft(2, '0'),
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 36,
@@ -927,10 +924,7 @@ class HomeView extends GetView<HomeController> {
                               ),
                             ),
                             Text(
-                              item.slot.missionNumber.toString().padLeft(
-                                2,
-                                '0',
-                              ),
+                              item.slot.day.toString().padLeft(2, '0'),
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 36,
@@ -979,10 +973,13 @@ class HomeView extends GetView<HomeController> {
   }
 
   // ── STATUS ICON ───────────────────────────────────────────────────────────
-  Widget _buildStatusIcon(MissionSlotWithStatus item, {bool hasImage = false}) {
+  Widget _buildStatusIcon(
+    WeeklyMissionSlotWithStatus item, { // ← ganti
+    bool hasImage = false,
+  }) {
     final boxBorderColor =
-        (item.status == DailyMissionStatus.locked ||
-            item.status == DailyMissionStatus.expired)
+        (item.status == WeeklyMissionStatus.locked ||
+            item.status == WeeklyMissionStatus.expired)
         ? (hasImage ? Colors.white : Colors.grey.shade500)
         : const Color(0xFF3D1C10);
 
@@ -1010,7 +1007,7 @@ class HomeView extends GetView<HomeController> {
     }
 
     switch (item.status) {
-      case DailyMissionStatus.completed:
+      case WeeklyMissionStatus.completed:
         return withBox(
           Image.asset(
             'assets/images/icon_check.png',
@@ -1021,7 +1018,7 @@ class HomeView extends GetView<HomeController> {
           ),
         );
 
-      case DailyMissionStatus.inProgress:
+      case WeeklyMissionStatus.inProgress:
         return withBox(
           Image.asset(
             'assets/images/icon_question.png',
@@ -1038,8 +1035,8 @@ class HomeView extends GetView<HomeController> {
           ),
         );
 
-      case DailyMissionStatus.expired:
-      case DailyMissionStatus.locked:
+      case WeeklyMissionStatus.expired:
+      case WeeklyMissionStatus.locked:
         return ColorFiltered(
           colorFilter: ColorFilter.mode(
             hasImage ? Colors.white : Colors.grey.shade500,
@@ -1061,11 +1058,11 @@ class HomeView extends GetView<HomeController> {
 
   // ── SPECIAL MISSION CARD ──────────────────────────────────────────────────
   Widget _buildSpecialMissionCard(
-    MissionSlotWithStatus item, {
+    WeeklyMissionSlotWithStatus item, {
     required VoidCallback onTap,
   }) {
-    final isCompleted = item.status == DailyMissionStatus.completed;
-    final isInProgress = item.status == DailyMissionStatus.inProgress;
+    final isCompleted = item.status == WeeklyMissionStatus.completed;
+    final isInProgress = item.status == WeeklyMissionStatus.inProgress;
     final hasImage = item.slot.imagePath != null;
     const strokeColor = Color(0xFF3D1C10);
 
@@ -1149,10 +1146,7 @@ class HomeView extends GetView<HomeController> {
                         Stack(
                           children: [
                             Text(
-                              item.slot.missionNumber.toString().padLeft(
-                                2,
-                                '0',
-                              ),
+                              item.slot.day.toString().padLeft(2, '0'),
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 42,
@@ -1167,10 +1161,7 @@ class HomeView extends GetView<HomeController> {
                               ),
                             ),
                             Text(
-                              item.slot.missionNumber.toString().padLeft(
-                                2,
-                                '0',
-                              ),
+                              item.slot.day.toString().padLeft(2, '0'),
                               style: TextStyle(
                                 fontFamily: 'Inter',
                                 fontSize: 42,
