@@ -4,20 +4,23 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:santarana/app/routes/app_pages.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
+import 'package:santarana/shared/models/badge_model.dart';
 import 'package:santarana/shared/models/user_model.dart';
 import 'package:santarana/shared/services/auth_service.dart';
+import 'package:santarana/shared/services/badge_service.dart';
 import 'package:santarana/shared/services/profile_service.dart';
 
 class ProfileController extends GetxController {
   final AuthService _authService = AuthService();
   final ProfileService _profileService = ProfileService();
+  final BadgeService _badgeService = BadgeService();
   final AuthController _authController = Get.find<AuthController>();
 
-  // ── Stream subscription stats real-time ───────────────────────────────────
-  StreamSubscription<UserModel>? _statsSubscription;
+  final isLoadingBadges = false.obs;
+  final allBadges = <BadgeModel>[].obs;
+  final earnedBadgeIds = <String>{}.obs; // set ID badge yang sudah diraih
 
-  // ── State rank ────────────────────────────────────────────────────────────
-  // rank sudah ada di AuthController.rank, tapi kita refresh saat tab dibuka
+  StreamSubscription<UserModel>? _statsSubscription;
   final isLoadingRank = false.obs;
 
   @override
@@ -25,6 +28,32 @@ class ProfileController extends GetxController {
     super.onInit();
     _listenStats();
     _refreshRank();
+    _loadBadges();
+  }
+
+  // ── Load semua badge + earned badge user ──────────────────────
+  Future<void> _loadBadges() async {
+    final uid = _authController.uid;
+    if (uid == null) return;
+
+    try {
+      isLoadingBadges.value = true;
+
+      // Fetch paralel: semua badge + earned badge user
+      final results = await Future.wait([
+        _badgeService.getAllBadgesIncludingInactive(),
+        _badgeService.getEarnedBadges(uid),
+      ]);
+
+      allBadges.value = results[0] as List<BadgeModel>;
+
+      final earned = results[1] as List<EarnedBadgeModel>;
+      earnedBadgeIds.value = earned.map((e) => e.badgeId).toSet();
+    } catch (e) {
+      debugPrint('Warning: gagal load badges: $e');
+    } finally {
+      isLoadingBadges.value = false;
+    }
   }
 
   // ── Subscribe stream stats user dari Firestore ────────────────────────────

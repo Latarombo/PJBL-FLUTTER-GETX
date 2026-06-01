@@ -2,21 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:santarana/app/routes/app_pages.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
 import 'package:santarana/shared/models/category_model.dart';
-import 'package:santarana/shared/models/category_progress_model.dart';
 import 'package:santarana/shared/models/progress_model.dart';
 import 'package:santarana/shared/models/question_model.dart';
 import 'package:santarana/shared/models/quiz_session_model.dart';
+import 'package:santarana/shared/services/badge_service.dart';
 import 'package:santarana/shared/services/category_progress_service.dart';
 import 'package:santarana/shared/services/leaderboard_service.dart';
 import 'package:santarana/shared/services/progress_service.dart';
 import 'package:santarana/shared/services/quiz_result_service.dart';
 import 'package:santarana/shared/services/quiz_service.dart';
-import 'package:santarana/shared/theme/app_colors.dart';
 
 class QuizController extends GetxController {
+  final BadgeService _badgeService = BadgeService();
   final QuizService _quizService = QuizService();
   final QuizResultService _resultService = QuizResultService();
   final ProgressService _progressService = ProgressService();
@@ -39,19 +38,12 @@ class QuizController extends GetxController {
   final totalPoints = 0.obs;
   final streak = 0.obs;
 
-  // ─── Card-based quiz state ──────────────────────────────────────────────────
-  /// Card number (1-10) jika quiz dari KategoriKuisView, null jika dari HomeView
+  // ─── Card-based quiz state ─────────────────────────────────────────────────
   int? _cardNumber;
   String? _categoryId;
   int? _totalSoalInCard;
-
-  /// Soal yang sudah benar di sesi sebelumnya (untuk card-based)
   List<String> _previouslyCorrectIds = [];
-
-  /// Map: questionId → benar/salah untuk sesi ini
   final Map<String, bool> _answeredCorrectly = {};
-
-  /// Poin yang benar-benar akan dikreditkan (hanya soal baru yang benar)
   int _newPointsEarned = 0;
 
   CategoryModel? _currentCategory;
@@ -64,7 +56,6 @@ class QuizController extends GetxController {
 
   int get totalQuestions => questions.length;
 
-  /// Apakah ini card-based quiz (dari KategoriKuisView)
   bool get isCardBased => _cardNumber != null;
 
   // ─── LIFECYCLE ─────────────────────────────────────────────────────────────
@@ -79,7 +70,6 @@ class QuizController extends GetxController {
     final category = args?['category'] as String? ?? '';
     categoryName.value = category;
 
-    // Card-based quiz: questions sudah dikirim dari KategoriKuisController
     final preloadedQuestions = args?['questions'] as List<QuestionModel>?;
     _cardNumber = args?['cardNumber'] as int?;
     _categoryId = args?['categoryId'] as String?;
@@ -89,19 +79,16 @@ class QuizController extends GetxController {
     );
 
     if (preloadedQuestions != null && preloadedQuestions.isNotEmpty) {
-      // Mode: soal sudah diload oleh KategoriKuisController
       questions.value = preloadedQuestions;
       _resetState();
       _startedAt = DateTime.now();
-      // Fetch category model di background (untuk save hasil)
       _fetchCategoryModel(category);
     } else {
-      // Mode: fetch soal sendiri (dari HomeView atau route langsung)
       fetchQuestions(category);
     }
   }
 
-  // ─── FETCH (mode legacy dari HomeView) ────────────────────────────────────
+  // ─── FETCH ─────────────────────────────────────────────────────────────────
   Future<void> fetchQuestions(String name) async {
     try {
       isLoading.value = true;
@@ -140,9 +127,7 @@ class QuizController extends GetxController {
   Future<void> _fetchCategoryModel(String name) async {
     try {
       _currentCategory = await _quizService.getCategoryByName(name);
-    } catch (_) {
-      // non-critical
-    }
+    } catch (_) {}
   }
 
   // ─── QUIZ LOGIC ────────────────────────────────────────────────────────────
@@ -168,14 +153,12 @@ class QuizController extends GetxController {
     final isCorrect = selectedAnswerIndex.value == correct;
     final questionId = currentQuestion?.id ?? '';
 
-    // Catat hasil soal ini
     _answeredCorrectly[questionId] = isCorrect;
 
     if (isCorrect) {
       correctAnswers.value++;
       streak.value++;
 
-      // Hitung poin hanya jika soal ini belum pernah benar sebelumnya
       if (!_previouslyCorrectIds.contains(questionId)) {
         final bonus = streak.value >= 3 ? 5 : 0;
         final pointsThisQuestion = 10 + bonus;
@@ -209,7 +192,6 @@ class QuizController extends GetxController {
     final percentage = total > 0 ? (correct / total) * 100 : 0.0;
     final grade = QuizSessionModel.calculateGrade(percentage);
 
-    // Tampilkan dialog terlebih dahulu
     _showResultDialog(
       correct: correct,
       total: total,
@@ -218,7 +200,6 @@ class QuizController extends GetxController {
       grade: grade,
     );
 
-    // Simpan di background
     if (uid != null) {
       _saveResults(
         uid: uid,
@@ -244,7 +225,7 @@ class QuizController extends GetxController {
 
       final futures = <Future>[];
 
-      // 1. Simpan progress card (jika card-based)
+      // 1. Simpan progress card
       if (isCardBased && _categoryId != null && _cardNumber != null) {
         futures.add(
           _cardProgressService.saveCardProgress(
@@ -253,12 +234,12 @@ class QuizController extends GetxController {
             cardNumber: _cardNumber!,
             totalSoalInCard: _totalSoalInCard ?? total,
             answeredCorrectly: _answeredCorrectly,
-            existingProgress: null, // service akan fetch sendiri jika perlu
+            existingProgress: null,
           ),
         );
       }
 
-      // 2. Tambah poin ke user (hanya poin baru)
+      // 2. Tambah poin
       if (_newPointsEarned > 0) {
         futures.add(_resultService.addPointsToUser(uid, _newPointsEarned));
 
@@ -273,7 +254,7 @@ class QuizController extends GetxController {
         );
       }
 
-      // 4. Simpan sesi quiz (untuk riwayat)
+      // 4. Simpan sesi quiz
       if (category != null) {
         final session = QuizSessionModel(
           userId: uid,
@@ -292,7 +273,7 @@ class QuizController extends GetxController {
         );
         futures.add(_resultService.saveQuizSession(session));
 
-        // 5. Simpan progress kategori (untuk "Aktivitas Terakhir" di Home)
+        // 5. Simpan progress kategori
         final progressModel = ProgressModel(
           categoryId: category.id,
           categoryName: category.name,
@@ -312,11 +293,48 @@ class QuizController extends GetxController {
 
       await Future.wait(futures);
       await _authController.refreshUser();
+
+      // 6. Cek dan award badge
+      if (isCardBased && _categoryId != null) {
+        await _checkAndAwardBadge(uid: uid, categoryId: _categoryId!);
+      }
     } catch (e) {
-      // Non-critical
       debugPrint('Warning: gagal menyimpan hasil quiz: $e');
     } finally {
       isSaving.value = false;
+    }
+  }
+
+  // ─── CEK BADGE ─────────────────────────────────────────────────────────────
+  Future<void> _checkAndAwardBadge({
+    required String uid,
+    required String categoryId,
+  }) async {
+    try {
+      final isFirstEverQuiz = _authController.quizCompleted == 1;
+
+      final isCard1Completed =
+          _cardNumber == 1 &&
+          (_answeredCorrectly.values.where((v) => v).length ==
+              _totalSoalInCard);
+
+      final allProgress = await _cardProgressService.getAllCardProgress(
+        uid: uid,
+        categoryId: categoryId,
+      );
+      final isAllCardsCompleted =
+          allProgress.length == 10 &&
+          allProgress.values.every((p) => p.isCompleted);
+
+      await _badgeService.checkAndAwardBadgeAfterQuiz(
+        uid: uid,
+        categoryId: categoryId,
+        isFirstEverQuiz: isFirstEverQuiz,
+        isCard1Completed: isCard1Completed,
+        isAllCardsCompleted: isAllCardsCompleted,
+      );
+    } catch (e) {
+      debugPrint('Warning: gagal cek badge: $e');
     }
   }
 
@@ -328,9 +346,7 @@ class QuizController extends GetxController {
     required double percentage,
     required String grade,
   }) {
-    // Apakah semua soal benar (card completed)?
     final isPerfect = percentage >= 100;
-    // Apakah ada poin baru?
     final hasNewPoints = points > 0;
 
     Get.dialog(
@@ -495,7 +511,11 @@ class QuizController extends GetxController {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () => Get.back(),
+                      onPressed: () {
+                        Get.back(); // tutup dialog
+                        if (isCardBased)
+                          Get.back(); // kembali ke KategoriKuisView
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF1A2332),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -526,7 +546,6 @@ class QuizController extends GetxController {
     _newPointsEarned = 0;
 
     if (isCardBased) {
-      // Reload dari arguments yang sama
       _resetState();
       _startedAt = DateTime.now();
     } else {
@@ -599,4 +618,4 @@ class QuizController extends GetxController {
     _autoAdvanceTimer?.cancel();
     super.onClose();
   }
-}
+} // ← satu kurung kurawal penutup class di sini

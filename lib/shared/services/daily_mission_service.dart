@@ -4,10 +4,11 @@ import 'package:santarana/shared/models/daily_mission_model.dart';
 import 'package:santarana/shared/models/mission_template_model.dart';
 import 'package:santarana/shared/models/user_mission_completion_model.dart';
 import 'package:santarana/shared/models/user_mission_streak_model.dart';
+import 'package:santarana/shared/services/badge_service.dart';
 
 class DailyMissionService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-
+  final BadgeService _badgeService = BadgeService();
   // ── Helper: tanggal hari ini sebagai string "yyyy-MM-dd" WIB ──────────────
   String get todayKey {
     final now = DateTime.now().toUtc().add(const Duration(hours: 7));
@@ -184,13 +185,20 @@ class DailyMissionService {
       badgeEarned = existing.badgeEarned;
       badgeEarnedAt = existing.badgeEarnedAt;
 
+      // ── Step 7: Award streak badge setelah 7 hari ────────────
       if (currentStreak >= 7 && !badgeEarned) {
         badgeEarned = true;
         badgeEarnedAt = DateTime.now();
-        await _db.collection('users').doc(uid).update({
-          'missionBadgeEarned': true,
-          'missionBadgeEarnedAt': FieldValue.serverTimestamp(),
-        });
+
+        await Future.wait([
+          // Update field di users
+          _db.collection('users').doc(uid).update({
+            'missionBadgeEarned': true,
+            'missionBadgeEarnedAt': FieldValue.serverTimestamp(),
+          }),
+          // Award badge via BadgeService
+          _badgeService.checkAndAwardStreakBadge(uid),
+        ]);
       }
     }
 

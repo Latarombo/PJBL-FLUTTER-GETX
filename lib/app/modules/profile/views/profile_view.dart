@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:santarana/app/modules/profile/controllers/profile_controller.dart';
 import 'package:santarana/shared/controllers/auth_controller.dart';
+import 'package:santarana/shared/models/badge_model.dart';
 import 'package:santarana/shared/widgets/user_avatar.dart';
 
 class ProfileView extends GetView<ProfileController> {
@@ -11,10 +12,6 @@ class ProfileView extends GetView<ProfileController> {
   Widget build(BuildContext context) {
     final authController = Get.find<AuthController>();
 
-    // Dummy: 0 dari 20 unlocked
-    final List<bool> medalStatus = List.generate(20, (_) => false);
-    final int collected = medalStatus.where((e) => e).length;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF9F4E4),
       extendBody: true,
@@ -22,10 +19,7 @@ class ProfileView extends GetView<ProfileController> {
         children: [
           _buildFixedTop(authController),
           Expanded(
-            child: _buildScrollableMedals(
-              medalStatus: medalStatus,
-              collected: collected,
-            ),
+            child: _buildScrollableBadges(badgeStatus: [], collected: 0),
           ),
         ],
       ),
@@ -237,9 +231,9 @@ class ProfileView extends GetView<ProfileController> {
     );
   }
 
-  // ── SCROLLABLE MEDALS ─────────────────────────────────────────────────────
-  Widget _buildScrollableMedals({
-    required List<bool> medalStatus,
+  // ── SCROLLABLE BADGE─────────────────────────────────────────────────────
+  Widget _buildScrollableBadges({
+    required List<bool> badgeStatus,
     required int collected,
   }) {
     return Padding(
@@ -247,11 +241,12 @@ class ProfileView extends GetView<ProfileController> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── Header ─────────────────────────────────────────────
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Medali Saya',
+                'Lencana Saya',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -271,7 +266,7 @@ class ProfileView extends GetView<ProfileController> {
           ),
           const SizedBox(height: 10),
           Text(
-            'Selesaikan berbagai quiz seru untuk mengumpulkan\nfragmen dan membuka medali spesial!',
+            'Selesaikan berbagai quiz seru untuk membuka lencana spesial!',
             style: TextStyle(
               fontSize: 12,
               color: Colors.grey[600],
@@ -279,150 +274,169 @@ class ProfileView extends GetView<ProfileController> {
             ),
           ),
           const SizedBox(height: 12),
-          RichText(
-            text: TextSpan(
-              style: const TextStyle(
-                fontSize: 15,
-                color: Color(0xFF270F0F),
-                fontWeight: FontWeight.w500,
+
+          // ── Counter badge ───────────────────────────────────────
+          Obx(() {
+            final earned = controller.earnedBadgeIds.length;
+            final total = controller.allBadges.length;
+            return RichText(
+              text: TextSpan(
+                style: const TextStyle(
+                  fontSize: 15,
+                  color: Color(0xFF270F0F),
+                  fontWeight: FontWeight.w500,
+                ),
+                children: [
+                  const TextSpan(text: 'Dikumpulkan: '),
+                  TextSpan(
+                    text: '$earned',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFB85C52),
+                      fontSize: 17,
+                    ),
+                  ),
+                  TextSpan(
+                    text: '/$total lencana',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 17,
+                    ),
+                  ),
+                ],
               ),
-              children: [
-                const TextSpan(text: 'Dikumpulkan: '),
-                TextSpan(
-                  text: '$collected',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFB85C52),
-                    fontSize: 17,
-                  ),
-                ),
-                TextSpan(
-                  text: '/${medalStatus.length} medali',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 17,
-                  ),
-                ),
-              ],
-            ),
-          ),
+            );
+          }),
           const SizedBox(height: 14),
+
+          // ── Grid badge ──────────────────────────────────────────
           Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.only(bottom: 100),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 1,
-              ),
-              itemCount: medalStatus.length,
-              itemBuilder: (context, index) =>
-                  _buildMedalItem(index: index, isUnlocked: medalStatus[index]),
-            ),
+            child: Obx(() {
+              // Loading state
+              if (controller.isLoadingBadges.value) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Color(0xFFB85C52)),
+                );
+              }
+
+              // Empty state
+              if (controller.allBadges.isEmpty) {
+                return Center(
+                  child: Text(
+                    'Belum ada lencana yang anda peroleh.',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
+                );
+              }
+
+              return GridView.builder(
+                padding: const EdgeInsets.only(bottom: 100),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 1,
+                ),
+                itemCount: controller.allBadges.length,
+                itemBuilder: (context, index) {
+                  final badge = controller.allBadges[index];
+                  final isUnlocked = controller.earnedBadgeIds.contains(
+                    badge.id,
+                  );
+                  return _buildBadgeItem(badge: badge, isUnlocked: isUnlocked);
+                },
+              );
+            }),
           ),
         ],
       ),
     );
   }
 
-  // ── SINGLE MEDAL ITEM ──────────────────────────────────────────────────────
-  Widget _buildMedalItem({required int index, required bool isUnlocked}) {
-    return Container(
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        color: isUnlocked ? const Color(0xFFFFF3E0) : const Color(0xFFF0EBE0),
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(6),
-            child: ColorFiltered(
-              colorFilter: isUnlocked
-                  ? const ColorFilter.mode(
-                      Colors.transparent,
-                      BlendMode.saturation,
-                    )
-                  : const ColorFilter.matrix(<double>[
-                      0.2126,
-                      0.7152,
-                      0.0722,
-                      0,
-                      0,
-                      0.2126,
-                      0.7152,
-                      0.0722,
-                      0,
-                      0,
-                      0.2126,
-                      0.7152,
-                      0.0722,
-                      0,
-                      0,
-                      0,
-                      0,
-                      0,
-                      1,
-                      0,
-                    ]),
-              child: Image.asset(
-                'assets/images/badge_master.png',
-                fit: BoxFit.contain,
-                errorBuilder: (_, __, ___) =>
-                    _buildFallbackBadge(isUnlocked: isUnlocked),
-              ),
-            ),
-          ),
-          if (!isUnlocked)
-            Positioned(
-              bottom: 6,
-              right: 6,
-              child: Container(
-                padding: const EdgeInsets.all(3),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.85),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.lock_rounded,
-                  size: 12,
-                  color: Colors.grey[500],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+  // ── SINGLE BADGE ITEM ──────────────────────────────────────────
+  Widget _buildBadgeItem({
+    required BadgeModel badge,
+    required bool isUnlocked,
+  }) {
+    // Badge inactive (lvl3) selalu terkunci meskipun di earned_medals
+    final bool isLocked = !badge.isActive || !isUnlocked;
 
-  Widget _buildFallbackBadge({required bool isUnlocked}) {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: isUnlocked
-            ? const LinearGradient(
-                colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : LinearGradient(
-                colors: [Colors.grey[400]!, Colors.grey[300]!],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-        border: Border.all(
-          color: isUnlocked ? const Color(0xFFB8860B) : Colors.grey[400]!,
-          width: 2,
+    return Tooltip(
+      message: isLocked
+          ? badge.isActive
+                ? '??? Belum terbuka' // aktif tapi belum earned
+                : '🔒 Rahasia' // inactive (lvl3)
+          : badge.name, // sudah earned
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          color: !isLocked ? const Color(0xFFFFF3E0) : const Color(0xFFF0EBE0),
         ),
-      ),
-      child: Center(
-        child: Icon(
-          isUnlocked ? Icons.military_tech : Icons.lock_rounded,
-          color: isUnlocked ? Colors.white : Colors.grey[500],
-          size: 26,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // ── Gambar badge ────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.all(6),
+              child: ColorFiltered(
+                colorFilter: !isLocked
+                    ? const ColorFilter.mode(
+                        Colors.transparent,
+                        BlendMode.saturation,
+                      )
+                    : const ColorFilter.matrix(<double>[
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0.2126,
+                        0.7152,
+                        0.0722,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        1,
+                        0,
+                      ]),
+                child: Image.asset(
+                  badge.imagePath,
+                  fit: BoxFit.contain,
+                  errorBuilder: (context, error, stackTrace) =>
+                      _buildFallbackBadge(isUnlocked: !isLocked),
+                ),
+              ),
+            ),
+
+            // ── Lock icon ───────────────────────────────────────
+            if (isLocked)
+              Positioned(
+                bottom: 6,
+                right: 6,
+                child: Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.85),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    badge.isActive
+                        ? Icons
+                              .lock_rounded // belum earned
+                        : Icons.lock_outline, // inactive/rahasia
+                    size: 12,
+                    color: Colors.grey[500],
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     );
@@ -461,6 +475,38 @@ class ProfileView extends GetView<ProfileController> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFallbackBadge({required bool isUnlocked}) {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: isUnlocked
+            ? const LinearGradient(
+                colors: [Color(0xFFFFD700), Color(0xFFFFA000)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : LinearGradient(
+                colors: [Colors.grey[400]!, Colors.grey[300]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+        border: Border.all(
+          color: isUnlocked ? const Color(0xFFB8860B) : Colors.grey[400]!,
+          width: 2,
+        ),
+      ),
+      child: Center(
+        child: Icon(
+          isUnlocked ? Icons.military_tech : Icons.lock_rounded,
+          color: isUnlocked ? Colors.white : Colors.grey[500],
+          size: 26,
+        ),
       ),
     );
   }
