@@ -45,8 +45,7 @@ class AudioService {
             contentType: AndroidAudioContentType.music,
             usage: AndroidAudioUsage.game, // ← karena ini game
           ),
-          androidAudioFocusGainType:
-              AndroidAudioFocusGainType.gainTransientMayDuck,
+          androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
         ),
       );
 
@@ -56,6 +55,14 @@ class AudioService {
       await _player!.setVolume(1.0);
 
       _isInitialized = true;
+      debugPrint('[Audio] init OK, duration: ${_player!.duration}');
+    } catch (e) {
+      debugPrint(
+        '[Audio] INIT ERROR: $e',
+      ); // ← ini akan tampil jika file tidak ada
+      _player?.dispose();
+      _player = null;
+      _isInitialized = false;
     } finally {
       _isInitializing = false;
     }
@@ -161,17 +168,16 @@ class AudioService {
     final completer = Completer<void>();
     int step = 0;
 
-    _fadeTimer = Timer.periodic(stepDuration, (timer) async {
+    _fadeTimer = Timer.periodic(stepDuration, (timer) {
       step++;
       final newVolume = (_player!.volume - volumeStep).clamp(0.0, 1.0);
-      await _player?.setVolume(newVolume);
+      _player?.setVolume(newVolume); // tanpa await
 
       if (step >= steps || newVolume <= 0.0) {
         timer.cancel();
         _fadeTimer = null;
-        await _player?.pause();
-        await _player?.setVolume(1.0);
-        if (!completer.isCompleted) completer.complete();
+        _player?.pause();
+        _player?.setVolume(1.0);
       }
     });
 
