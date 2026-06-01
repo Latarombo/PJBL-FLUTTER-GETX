@@ -2,6 +2,7 @@
 // Versi debug — tambah banyak print untuk lacak masalah
 
 import 'dart:async';
+import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -23,34 +24,40 @@ class AudioService {
   bool get isPlaying => _player?.playing ?? false;
 
   // ── Init tanpa play ───────────────────────────────────────────────────────
-  Future<void> initWithoutPlay() async {
-    debugPrint('[AudioService] initWithoutPlay() dipanggil');
+  bool _isInitializing = false;
 
-    if (_isInitialized) {
-      debugPrint('[AudioService] sudah init sebelumnya, skip');
-      return;
-    }
+  Future<void> initWithoutPlay() async {
+    if (_isInitialized || _isInitializing) return;
+    _isInitializing = true;
 
     try {
       final prefs = await SharedPreferences.getInstance();
       _isMusicEnabled = prefs.getBool(_prefKeyMusic) ?? true;
-      debugPrint('[AudioService] music enabled dari prefs: $_isMusicEnabled');
+
+      // ✅ Setup audio session untuk Android
+      final session = await AudioSession.instance;
+      await session.configure(
+        const AudioSessionConfiguration(
+          avAudioSessionCategory: AVAudioSessionCategory.ambient,
+          avAudioSessionCategoryOptions:
+              AVAudioSessionCategoryOptions.mixWithOthers,
+          androidAudioAttributes: AndroidAudioAttributes(
+            contentType: AndroidAudioContentType.music,
+            usage: AndroidAudioUsage.game, // ← karena ini game
+          ),
+          androidAudioFocusGainType:
+              AndroidAudioFocusGainType.gainTransientMayDuck,
+        ),
+      );
 
       _player = AudioPlayer();
-      debugPrint('[AudioService] AudioPlayer dibuat');
-
-      await _player!.setAsset('assets/audio/bgm_main.ogg');
-      debugPrint('[AudioService] asset berhasil di-load');
-
+      await _player!.setAsset('assets/audio/bgm_main.mp3');
       await _player!.setLoopMode(LoopMode.one);
       await _player!.setVolume(1.0);
 
       _isInitialized = true;
-      debugPrint('[AudioService] initWithoutPlay SELESAI ✓');
-    } catch (e, stack) {
-      debugPrint('[AudioService] initWithoutPlay ERROR: $e');
-      debugPrint('[AudioService] stack: $stack');
-      _isInitialized = false;
+    } finally {
+      _isInitializing = false;
     }
   }
 
@@ -177,22 +184,19 @@ class AudioService {
 
     await _player!.setVolume(0.0);
     await _player!.play();
-    debugPrint('[AudioService] _player.play() dipanggil');
 
     const steps = 20;
     final stepDuration = Duration(milliseconds: durationMs ~/ steps);
     const volumeStep = 1.0 / steps;
+    double currentVolume = 0.0; // ✅ track volume secara lokal
 
-    _fadeTimer = Timer.periodic(stepDuration, (timer) async {
-      final newVolume = ((_player?.volume ?? 0) + volumeStep).clamp(0.0, 1.0);
-      await _player?.setVolume(newVolume);
+    _fadeTimer = Timer.periodic(stepDuration, (timer) {
+      currentVolume = (currentVolume + volumeStep).clamp(0.0, 1.0);
+      _player?.setVolume(currentVolume); // ✅ hapus async/await di sini
 
-      if (newVolume >= 1.0) {
+      if (currentVolume >= 1.0) {
         timer.cancel();
         _fadeTimer = null;
-        debugPrint(
-          '[AudioService] fade in selesai, volume: ${_player?.volume}',
-        );
       }
     });
   }
