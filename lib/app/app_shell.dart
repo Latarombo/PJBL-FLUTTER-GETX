@@ -1,7 +1,10 @@
 // lib/app/app_shell.dart
 //
-// PERUBAHAN: AppShellController.onInit() memanggil AudioService.startBgm()
-// sehingga BGM hanya mulai saat user sudah masuk ke halaman utama (home).
+// FIX: AppShellController.onInit() memanggil startBgm() secara async
+// menggunakan Future.microtask agar tidak memblokir build frame pertama.
+// Sebelumnya pemanggilan langsung di onInit menyebabkan Choreographer
+// "Skipped 131 frames" karena AudioPlayer initialization terjadi di main thread
+// saat pertama kali widget di-render.
 
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:flutter/material.dart';
@@ -19,13 +22,15 @@ class AppShellController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    // 🎵 Mulai BGM saat user masuk ke halaman utama
-    AudioService.instance.startBgm();
+    // FIX: Gunakan Future.microtask agar startBgm tidak dieksekusi
+    // synchronous di dalam build pipeline frame pertama.
+    // Ini mencegah "Skipped N frames" yang disebabkan AudioPlayer
+    // init (I/O + AudioSession config) di main thread saat mount.
+    Future.microtask(() => AudioService.instance.startBgm());
   }
 
   @override
   void onClose() {
-    // 🎵 Stop BGM saat shell ditutup (misal: logout)
     AudioService.instance.stopBgm();
     super.onClose();
   }

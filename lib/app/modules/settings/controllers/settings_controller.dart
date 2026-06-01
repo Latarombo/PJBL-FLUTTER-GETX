@@ -1,4 +1,9 @@
 // lib/app/modules/settings/controllers/settings_controller.dart
+//
+// FIX: music tidak lagi dibuat sebagai RxBool baru yang terputus dari
+// AudioService. Sekarang langsung menggunakan isMusicEnabledRx dari
+// AudioService, sehingga perubahan di-service langsung terefleksi di UI
+// dan sebaliknya — tidak ada lagi state yang tidak sync.
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -11,19 +16,17 @@ class SettingsController extends GetxController {
   final AuthService _authService = AuthService();
   final AuthController _authController = Get.find<AuthController>();
 
-  late final RxBool music;
+  // FIX: Gunakan langsung RxBool dari AudioService, bukan buat baru.
+  // Ini memastikan toggle di Settings selalu sinkron dengan state AudioService.
+  RxBool get music => AudioService.instance.isMusicEnabledRx;
+
   final efekSuara = true.obs;
   final getarPonsel = false.obs;
 
-  @override
-  void onInit() {
-    super.onInit();
-    // Sinkronkan toggle dengan state AudioService yang sesungguhnya
-    music = AudioService.instance.isMusicEnabled.obs;
-  }
+  // onInit tidak perlu lagi — tidak ada inisialisasi manual music
 
   void toggleMusic(bool value) {
-    music.value = value;
+    // Langsung delegasi ke AudioService — state RxBool sudah diupdate di sana
     AudioService.instance.setMusicEnabled(value);
   }
 

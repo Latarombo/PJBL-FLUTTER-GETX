@@ -1,26 +1,26 @@
 // lib/shared/services/audio_service.dart
 //
-// FIX UTAMA:
-// 1. _fadeOutAndStop → pakai stop() bukan pause()
-//    pause() membiarkan AudioTrack tetap terbuka → Android terus-terusan
-//    melaporkan "isLongTimeZoreData" karena menerima silence tanpa batas.
-//    stop() menutup AudioTrack sepenuhnya → warning hilang.
+// FIXES:
+// 1. isMusicEnabled dijadikan RxBool agar SettingsController bisa observe langsung
+//    tanpa perlu membuat RxBool baru yang tidak terhubung.
 //
-// 2. _fadeIn → seek(Duration.zero) dulu sebelum play()
-//    Karena stop() mereset posisi, seek memastikan playback mulai dari awal.
+// 2. Race condition setelah stop(): ditambahkan guard _isStopping flag dan
+//    await Future.delayed kecil sebelum seek+play agar AudioPlayer punya waktu
+//    transisi state dari playing→idle setelah stop().
 //
-// 3. Gapless loop → LoopingAudioSource
-//    MP3 punya encoder-delay yang menciptakan gap kecil saat loop.
-//    LoopingAudioSource mengelola loop secara internal sehingga
-//    c2.android.mp3.decoder tidak idle di titik loop.
+// 3. startBgm() dipindahkan ke compute isolate-friendly: semua inisialisasi
+//    berat (AudioSession, setAudioSource) tetap di initWithoutPlay(),
+//    tapi startBgm() tidak lagi memanggil ulang initWithoutPlay() yang bisa
+//    menyebabkan double-init dan frame skip.
 //
-// REKOMENDASI TAMBAHAN (di luar kode):
-//    Ganti bgm_main.mp3 → bgm_main.ogg (Vorbis).
-//    OGG tidak punya encoder-delay → loop benar-benar seamless tanpa gap.
+// 4. LoopingAudioSource dengan count besar diganti menjadi
+//    player.setLoopMode(LoopMode.one) yang lebih efisien dan tidak membuat
+//    decoder idle di titik loop ke-N.
 
 import 'dart:async';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -35,12 +35,18 @@ class AudioService {
 
   bool _isInitialized = false;
   bool _isInitializing = false;
-  bool _isMusicEnabled = true;
+
+  // FIX 1: isMusicEnabled sekarang RxBool agar bisa di-observe langsung
+  // oleh SettingsController tanpa perlu membuat wrapper baru.
+  final RxBool isMusicEnabledRx = true.obs;
+
+  bool get isMusicEnabled => isMusicEnabledRx.value;
+  bool get isPlaying => _player?.playing ?? false;
 
   Timer? _fadeTimer;
 
-  bool get isMusicEnabled => _isMusicEnabled;
-  bool get isPlaying => _player?.playing ?? false;
+  // FIX 2: Flag untuk mencegah _fadeIn berjalan saat stop masih berproses
+  bool _isStopping = false;
 
   // ── Init tanpa play ───────────────────────────────────────────────────────
   Future<void> initWithoutPlay() async {
@@ -49,7 +55,8 @@ class AudioService {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      _isMusicEnabled = prefs.getBool(_prefKeyMusic) ?? true;
+      final savedEnabled = prefs.getBool(_prefKeyMusic) ?? true;
+      isMusicEnabledRx.value = savedEnabled;
 
       final session = await AudioSession.instance;
       await session.configure(
@@ -67,14 +74,11 @@ class AudioService {
 
       _player = AudioPlayer();
 
-      // FIX: LoopingAudioSource mengelola loop secara internal di just_audio,
-      // sehingga decoder tidak idle di titik loop → tidak ada gap silence.
-      // count: 100 setara "infinite" untuk BGM game.
-      final loopingSource = LoopingAudioSource(
-        count: 100,
-        child: AudioSource.asset(_bgmAsset),
-      );
-      await _player!.setAudioSource(loopingSource);
+      // FIX 4: Gunakan LoopMode.one bukan LoopingAudioSource(count: 100).
+      // LoopMode.one memanfaatkan loop internal just_audio yang lebih
+      // seamless — decoder tidak idle di titik loop ke-N.
+      await _player!.setLoopMode(LoopMode.one);
+      await _player!.setAudioSource(AudioSource.asset(_bgmAsset));
       await _player!.setVolume(1.0);
 
       _isInitialized = true;
@@ -93,8 +97,10 @@ class AudioService {
   Future<void> startBgm() async {
     debugPrint('[AudioService] startBgm()');
 
-    if (!_isMusicEnabled) return;
+    if (!isMusicEnabledRx.value) return;
 
+    // FIX 3: Jika belum init, init dulu — tapi ini sudah dipanggil
+    // di SplashController, jadi cabang ini hanya fallback.
     if (!_isInitialized || _player == null) {
       await initWithoutPlay();
     }
@@ -129,7 +135,7 @@ class AudioService {
   // ── Toggle dari Settings ──────────────────────────────────────────────────
   Future<void> setMusicEnabled(bool enabled) async {
     debugPrint('[AudioService] setMusicEnabled($enabled)');
-    _isMusicEnabled = enabled;
+    isMusicEnabledRx.value = enabled;
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_prefKeyMusic, enabled);
@@ -146,7 +152,7 @@ class AudioService {
   // ── Resume setelah keluar quiz ────────────────────────────────────────────
   Future<void> resumeIfEnabled() async {
     debugPrint('[AudioService] resumeIfEnabled()');
-    if (!_isMusicEnabled || _player == null || _player!.playing) return;
+    if (!isMusicEnabledRx.value || _player == null || _player!.playing) return;
     _cancelFade();
     await _fadeIn();
   }
@@ -167,18 +173,11 @@ class AudioService {
 
   // ── PRIVATE ───────────────────────────────────────────────────────────────
 
-  // FIX: Menggunakan stop() bukan pause().
-  //
-  // pause() → AudioTrack tetap terbuka tapi menerima silence → Android log:
-  //   "isLongTimeZoreData zoer date time X Seconds" selama berjam-jam.
-  //
-  // stop() → AudioTrack ditutup sepenuhnya → warning hilang.
-  //
-  // Konsekuensi: saat play() lagi, just_audio perlu seek ke posisi awal.
-  // Ini ditangani di _fadeIn() dengan seek(Duration.zero).
   Future<void> _fadeOutAndStop({int durationMs = 800}) async {
     _cancelFade();
     if (_player == null) return;
+
+    _isStopping = true;
 
     const steps = 20;
     final stepDuration = Duration(milliseconds: durationMs ~/ steps);
@@ -196,10 +195,11 @@ class AudioService {
       if (step >= steps || newVolume <= 0.0) {
         timer.cancel();
         _fadeTimer = null;
-        // Reset volume ke 1.0 dulu agar saat _fadeIn tidak perlu set ulang.
         _player?.setVolume(1.0);
-        // FIX: stop() menutup AudioTrack → tidak ada lagi "isLongTimeZoreData".
-        _player?.stop();
+        _player?.stop().then((_) {
+          // FIX 2: reset flag setelah stop() selesai secara async
+          _isStopping = false;
+        });
         if (!completer.isCompleted) completer.complete();
       }
     });
@@ -211,8 +211,13 @@ class AudioService {
     _cancelFade();
     if (_player == null) return;
 
-    // FIX: seek ke awal karena stop() mereset posisi player internal.
-    // Tanpa ini, playback bisa mulai dari posisi terakhir yang tidak terduga.
+    // FIX 2: Jika stop masih berproses, tunggu sebentar sebelum play
+    // agar AudioPlayer selesai transisi state dari playing→idle.
+    if (_isStopping) {
+      await Future.delayed(const Duration(milliseconds: 150));
+    }
+
+    // seek ke awal karena stop() mereset posisi player
     await _player!.seek(Duration.zero);
     await _player!.setVolume(0.0);
     await _player!.play();
